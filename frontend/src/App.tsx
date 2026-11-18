@@ -18,7 +18,8 @@ type SheetState =
   | { kind: "group" }
   | { kind: "rename"; key: string }
   | { kind: "picker" }
-  | { kind: "action"; entityId: string; isNew: boolean };
+  | { kind: "action"; entityId: string; isNew: boolean }
+  | { kind: "rename-favorite"; entityId: string };
 
 interface Props {
   hass: HomeAssistant;
@@ -235,7 +236,30 @@ export function App({ hass, narrow, onMenu, onMoreInfo }: Props) {
     sheetBody = (
       <ActionSheet key={sheet.entityId} hass={hass} entityId={sheet.entityId}
         current={sheet.isNew ? defaultAction(hass, sheet.entityId) : fav?.action ?? defaultAction(hass, sheet.entityId)}
-        onSave={(action) => setEntityAction(sheet.entityId, action, sheet.isNew)} />
+        onSave={(action) => setEntityAction(sheet.entityId, action, sheet.isNew)}
+        name={fav?.name || entityName(hass, sheet.entityId)}
+        onRename={sheet.isNew ? undefined : () => openSheet({ kind: "rename-favorite", entityId: sheet.entityId }, null)} />
+    );
+  } else if (sheet?.kind === "rename-favorite") {
+    const id = sheet.entityId;
+    const fav = layout.favorites.find((f) => f.type === "entity" && f.id === id);
+    const haName = entityName(hass, id);
+    const setName = (name: string | null) => {
+      saveLayout({
+        ...layout,
+        favorites: layout.favorites.map((f) => {
+          if (f.type !== "entity" || f.id !== id) return f;
+          const { name: _old, ...rest } = f;
+          return name ? { ...rest, name } : rest;
+        }),
+      });
+      closeSheet();
+    };
+    sheetTitle = "Rename favorite";
+    sheetBody = (
+      <NameSheet key={id} initial={fav?.name || haName} placeholder="Name in Mixboard" action="Rename"
+        onSave={setName} onDone={closeSheet}
+        onReset={fav?.name ? () => setName(null) : undefined} resetLabel={`Use “${haName}” again`} />
     );
   }
 

@@ -251,8 +251,10 @@ export function EntityPicker({ hass, exclude, onPick }: { hass: HomeAssistant; e
 }
 
 /* ── Choose what an entity favorite does ─────────────────── */
-export function ActionSheet({ hass, entityId, current, onSave }: {
+export function ActionSheet({ hass, entityId, current, onSave, onRename, name }: {
   hass: HomeAssistant; entityId: string; current?: FavoriteAction; onSave: (a: FavoriteAction) => void;
+  /** Only for favorites that already exist. */
+  onRename?: () => void; name?: string;
 }) {
   const [service, setService] = useState<string | null>(null);
   const services = servicesFor(hass, entityId);
@@ -275,6 +277,14 @@ export function ActionSheet({ hass, entityId, current, onSave }: {
   };
   return (
     <>
+      {onRename && (
+        <div className="options">
+          <button className="opt" onClick={onRename}>
+            <span>Rename<small>Shown as “{name}”</small></span>
+            <span className="go"><Icon name="chevron" /></span>
+          </button>
+        </div>
+      )}
       <p className="hint">Choose what happens when you tap it. Press and hold the tile to open its details.</p>
       <div className="options picker" role="radiogroup" aria-label="Action">
         <button className="opt" role="radio" aria-checked={same({ kind: "more-info" })} onClick={() => onSave({ kind: "more-info" })}>

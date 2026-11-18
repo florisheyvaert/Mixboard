@@ -42,6 +42,8 @@ LAYOUT_SCHEMA = vol.Schema(
                 # For entities: what a tap does, e.g. {"kind": "toggle"} or
                 # {"kind": "service", "service": "turn_on", "data": {"brightness_pct": 20}}.
                 vol.Optional("action"): dict,
+                # Display name for an entity favorite; HA's own name is untouched.
+                vol.Optional("name"): vol.All(str, vol.Length(min=1, max=80)),
             }
         ],
         # Display names in Mixboard for automations, by entity_id. HA's own name is untouched.

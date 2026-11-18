@@ -189,7 +189,7 @@ function EntityTile(p: {
 }) {
   const id = p.fav.id;
   const action = p.fav.action ?? defaultAction(p.hass, id);
-  const name = entityName(p.hass, id);
+  const name = p.fav.name || entityName(p.hass, id);
   const state = entityState(p.hass, id);
   const on = isOn(p.hass, id);
   const held = useRef(false);

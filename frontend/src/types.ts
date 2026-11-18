@@ -81,6 +81,8 @@ export interface Favorite {
   type: "entity" | "automation" | "group";
   id: string;
   action?: FavoriteAction;
+  /** Display name for an entity favorite. */
+  name?: string;
 }
 
 export interface Layout {
