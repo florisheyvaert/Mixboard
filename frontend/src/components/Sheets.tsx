@@ -6,10 +6,11 @@ import {
 import { Icon } from "../icons";
 import type { Automation } from "../model";
 import {
-  actionLabel, canToggle, fieldKind, fieldsOf, parseInput, selectOptions, servicesFor, type FieldKind,
+  actionLabel, canToggle, fieldKind, fieldsOf, parseInput, selectOptions, serviceName, servicesFor, type FieldKind,
 } from "../actions";
 import type { FavoriteAction, HomeAssistant } from "../types";
 import { errorText } from "../ui";
+import { EntityIcon } from "./EntityIcon";
 
 /** Bottom sheet on phones, centered dialog on wide screens. Holds one thing at a time. */
 export function Sheet({ open, title, onClose, children }: { open: boolean; title: string; onClose: () => void; children: ReactNode }) {
@@ -17,7 +18,7 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
   useEffect(() => {
     if (!open) return;
     const el = ref.current;
-    const first = el?.querySelector<HTMLElement>("[data-autofocus], input, .opt[aria-checked='true'], .opt, .done");
+    const first = el?.querySelector<HTMLElement>("[data-autofocus], input, .opt[aria-checked='true'], .opt, .done, .sheet-close");
     first?.focus({ preventScroll: true });
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     el?.addEventListener("keydown", onKey);
@@ -28,7 +29,10 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
       <div className={`scrim${open ? " open" : ""}`} onClick={onClose} />
       <section ref={ref} className={`sheet${open ? " open" : ""}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className="grip" />
-        <h2>{title}</h2>
+        <header className="sheet-head">
+          <h2>{title}</h2>
+          <button className="sheet-close" aria-label="Close" onClick={onClose}><Icon name="close" size={20} /></button>
+        </header>
         {children}
       </section>
     </>
@@ -36,6 +40,23 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
 }
 
 const Foot = ({ children }: { children: ReactNode }) => <div className="sheet-foot">{children}</div>;
+
+/** One choice in a sheet: a quiet tile with a title and an optional line below. */
+function Opt({ title, sub, checked, go, disabled, onClick }: {
+  title: ReactNode; sub?: ReactNode; checked?: boolean; go?: boolean; disabled?: boolean; onClick: () => void;
+}) {
+  const radio = checked !== undefined;
+  return (
+    <button className="opt" role={radio ? "radio" : undefined} aria-checked={radio ? checked : undefined} disabled={disabled} onClick={onClick}>
+      <span className="o-text">
+        <span className="o-title">{title}</span>
+        {sub && <span className="o-sub">{sub}</span>}
+      </span>
+      {checked && <span className="o-check"><Icon name="check" size={16} /></span>}
+      {go && !checked && <span className="o-go"><Icon name="chevron" size={20} /></span>}
+    </button>
+  );
+}
 
 /* ── Edit one helper ─────────────────────────────────────── */
 export function EditHelper({ hass, entityId, onDone, toast }: { hass: HomeAssistant; entityId: string; onDone: () => void; toast: (t: string) => void }) {
@@ -55,13 +76,8 @@ export function EditHelper({ hass, entityId, onDone, toast }: { hass: HomeAssist
       {h.kind === "number" && <EditNumber h={h} write={write} />}
       {(h.kind === "time" || h.kind === "date" || h.kind === "datetime") && <EditDateTime h={h} write={write} />}
       {h.kind === "select" && (
-        <div className="options" role="radiogroup" aria-label={h.name}>
-          {h.options.map((o) => (
-            <button key={o} className="opt" role="radio" aria-checked={o === h.value} onClick={() => write(o)}>
-              <span>{o}</span>
-              <span className="check"><Icon name="check" /></span>
-            </button>
-          ))}
+        <div className="options cols" role="radiogroup" aria-label={h.name}>
+          {h.options.map((o) => <Opt key={o} title={o} checked={o === h.value} onClick={() => write(o)} />)}
         </div>
       )}
       {h.kind === "text" && <EditText h={h} write={write} />}
@@ -145,7 +161,7 @@ function EditText({ h, write }: { h: Extract<Helper, { kind: "text" }>; write: (
   return (
     <form className="textedit" onSubmit={(e) => { e.preventDefault(); write(v); }}>
       <input value={v} minLength={h.min} maxLength={h.max} aria-label={h.name} onChange={(e) => setV(e.target.value)} />
-      <button className="plain save" disabled={v === h.value}>Save</button>
+      {v !== h.value && <button className="btn">Save</button>}
     </form>
   );
 }
@@ -161,15 +177,11 @@ export function RunSheet({ hass, automation: a, onDone, toast }: { hass: HomeAss
   };
   return (
     <>
-      <div className="options">
-        <button className="opt" onClick={() => run(false)} disabled={!a.enabled}>
-          <span>Trigger<small>{a.enabled ? "Runs only if the conditions pass" : "Turn the automation on to trigger it"}</small></span>
-        </button>
-        <button className="opt" onClick={() => run(true)}>
-          <span>Run actions<small>Skips the conditions and runs right away</small></span>
-        </button>
+      <div className="options cols">
+        <Opt title="Trigger" sub={a.enabled ? "Runs only if the conditions pass" : "Turn the automation on to trigger it"}
+          disabled={!a.enabled} onClick={() => run(false)} />
+        <Opt title="Run actions" sub="Skips the conditions and runs right away" onClick={() => run(true)} />
       </div>
-      <Foot><button className="done quiet" onClick={onDone}>Cancel</button></Foot>
     </>
   );
 }
@@ -180,23 +192,33 @@ export function MoreSheet({ automation: a, onDone, onRename, navigate }: {
 }) {
   return (
     <>
-      <div className="options">
-        <button className="opt" onClick={onRename}>
-          <span>Rename<small>{a.haName ? `Called “${a.haName}” in Home Assistant` : "Give it a clearer name in Mixboard"}</small></span>
-        </button>
-        {a.configId && (
-          <>
-            <button className="opt" onClick={() => { onDone(); navigate(`/config/automation/trace/${a.configId}`); }}>
-              <span>Traces<small>See what happened the last times it ran</small></span>
-            </button>
-            <button className="opt" onClick={() => { onDone(); navigate(`/config/automation/edit/${a.configId}`); }}>
-              <span>Edit in Home Assistant<small>Open the automation editor</small></span>
-            </button>
-          </>
-        )}
-      </div>
-      <Foot><button className="done quiet" onClick={onDone}>Cancel</button></Foot>
+      <NameRow name={a.name} sub={a.haName ? `Called “${a.haName}” in Home Assistant` : undefined} onClick={onRename} />
+      {a.configId && (
+        <>
+          <p className="sheet-label">In Home Assistant</p>
+          <div className="options cols">
+            <Opt title="Traces" sub="What happened the last times it ran" go
+              onClick={() => { onDone(); navigate(`/config/automation/trace/${a.configId}`); }} />
+            <Opt title="Edit" sub="Open the automation editor" go
+              onClick={() => { onDone(); navigate(`/config/automation/edit/${a.configId}`); }} />
+          </div>
+        </>
+      )}
     </>
+  );
+}
+
+/** The current name as a value you can change, like a setting tile. */
+function NameRow({ name, sub, onClick }: { name: string; sub?: string; onClick: () => void }) {
+  return (
+    <button className="namerow" onClick={onClick}>
+      <span className="o-text">
+        <span className="o-sub">Name</span>
+        <span className="n-value">{name}</span>
+        {sub && <span className="o-sub">{sub}</span>}
+      </span>
+      <span className="o-go"><Icon name="edit" size={20} /></span>
+    </button>
   );
 }
 
@@ -208,13 +230,14 @@ export function NameSheet({ initial, placeholder, action, onSave, onReset, reset
   const [name, setName] = useState(initial);
   return (
     <>
-      <form className="textedit" onSubmit={(e) => { e.preventDefault(); if (name.trim()) onSave(name.trim()); }}>
+      <form id="namesheet" className="textedit" onSubmit={(e) => { e.preventDefault(); if (name.trim()) onSave(name.trim()); }}>
         <input data-autofocus placeholder={placeholder} value={name} maxLength={80} onChange={(e) => setName(e.target.value)} aria-label={placeholder} />
-        <button className="plain save" disabled={!name.trim() || name.trim() === initial}>{action}</button>
       </form>
       <Foot>
         {onReset && <button className="plain reset" onClick={onReset}>{resetLabel}</button>}
-        <button className="done quiet" onClick={onDone}>Cancel</button>
+        {name.trim() && name.trim() !== initial
+          ? <button className="done" type="submit" form="namesheet">{action}</button>
+          : <button className="done quiet" onClick={onDone}>Cancel</button>}
       </Foot>
     </>
   );
@@ -240,8 +263,12 @@ export function EntityPicker({ hass, exclude, onPick }: { hass: HomeAssistant; e
       </label>
       <div className="options picker">
         {results.map((e) => (
-          <button key={e.id} className="opt" onClick={() => onPick(e.id)}>
-            <span>{e.name}<small>{e.id}</small></span>
+          <button key={e.id} className="pickrow" onClick={() => onPick(e.id)}>
+            <EntityIcon hass={hass} entityId={e.id} />
+            <span className="o-text">
+              <span className="o-title">{e.name}</span>
+              <span className="o-sub">{e.id}</span>
+            </span>
           </button>
         ))}
         {results.length === 0 && <p className="hint">No entity matches “{q.trim()}”.</p>}
@@ -277,41 +304,23 @@ export function ActionSheet({ hass, entityId, current, onSave, onRename, name }:
   };
   return (
     <>
-      {onRename && (
-        <div className="options">
-          <button className="opt" onClick={onRename}>
-            <span>Rename<small>Shown as “{name}”</small></span>
-            <span className="go"><Icon name="chevron" /></span>
-          </button>
-        </div>
-      )}
-      <p className="hint">Choose what happens when you tap it. Press and hold the tile to open its details.</p>
-      <div className="options picker" role="radiogroup" aria-label="Action">
-        <button className="opt" role="radio" aria-checked={same({ kind: "more-info" })} onClick={() => onSave({ kind: "more-info" })}>
-          <span>Open details<small>Shows Home Assistant's own controls</small></span>
-          <span className="check"><Icon name="check" /></span>
-        </button>
+      {onRename && name && <NameRow name={name} onClick={onRename} />}
+      <p className="sheet-label">When you tap it</p>
+      <div className="options cols" role="radiogroup" aria-label="When you tap it">
         {canToggle(hass, entityId) && (
-          <button className="opt" role="radio" aria-checked={same({ kind: "toggle" })} onClick={() => onSave({ kind: "toggle" })}>
-            <span>Toggle<small>Switch it on or off</small></span>
-            <span className="check"><Icon name="check" /></span>
-          </button>
+          <Opt title="Toggle" sub="Switch it on or off" checked={same({ kind: "toggle" })} onClick={() => onSave({ kind: "toggle" })} />
         )}
-        {services.filter(([n]) => n !== "toggle").map(([name, info]) => {
-          const selected = current?.kind === "service" && current.service === name;
-          const hasFields = fieldsOf(info).length > 0;
+        <Opt title="Open details" sub="Home Assistant's own controls" checked={same({ kind: "more-info" })} onClick={() => onSave({ kind: "more-info" })} />
+        {services.filter(([n]) => n !== "toggle").map(([svc, info]) => {
+          const selected = current?.kind === "service" && current.service === svc;
           return (
-            <button key={name} className="opt" role="radio" aria-checked={selected} onClick={() => choose(name)}>
-              <span>
-                {info.name || name}
-                <small>{selected && current ? actionLabel(hass, entityId, current) : info.description}</small>
-              </span>
-              {selected && <span className="check"><Icon name="check" /></span>}
-              {hasFields && <span className="go"><Icon name="chevron" /></span>}
-            </button>
+            <Opt key={svc} title={serviceName(hass, entityId, svc)}
+              sub={selected && current ? actionLabel(hass, entityId, current) : info.description}
+              checked={selected} go={fieldsOf(info).length > 0} onClick={() => choose(svc)} />
           );
         })}
       </div>
+      <p className="sheet-note">Press and hold the tile to open its details any time.</p>
     </>
   );
 }
@@ -331,7 +340,8 @@ function ServiceForm({ hass, entityId, service, fields, initial, onBack, onSave 
   const missing = fields.filter(([k, f]) => f.required && !(k in data));
   return (
     <>
-      <p className="hint">{actionLabel(hass, entityId, { kind: "service", service, data })}. Leave a field empty to skip it.</p>
+      <p className="sheet-label">{actionLabel(hass, entityId, { kind: "service", service, data })}</p>
+      <p className="sheet-note top">Leave a field empty to skip it.</p>
       <div className="form">
         {fields.map(([key, f]) => {
           const kind = kinds[key];
