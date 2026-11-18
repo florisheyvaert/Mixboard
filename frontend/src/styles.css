@@ -71,6 +71,7 @@ button, input { font: inherit; color: inherit; }
 .tile .t-foot { margin-top: auto; padding-top: 6px; font-size: 13px; color: var(--mb-muted); }
 .tile.off .t-name { color: var(--mb-muted); }
 .tile.dim { opacity: 0.5; }
+.tile.off .e-icon { opacity: 0.6; }
 .tile.entity.toggle { padding-right: 72px; }
 .tile.entity.service .t-sub { padding-right: 26px; }
 .tile.entity.on .t-sub { color: var(--mb-accent); }
@@ -93,7 +94,8 @@ button, input { font: inherit; color: inherit; }
 /* Detail: full width, same tiles as home, big values */
 .back { display: inline-flex; align-items: center; gap: 2px; color: var(--mb-muted); margin: 22px 0 12px -6px; padding: 6px; border-radius: 8px; }
 .back:hover { color: var(--mb-text); }
-.d-title { font-size: 34px; font-weight: 600; margin: 0; letter-spacing: -0.015em; line-height: 1.15; }
+.d-title .e-icon { color: var(--mb-muted); }
+.d-title { display: flex; align-items: center; gap: 12px; font-size: 34px; font-weight: 600; margin: 0; letter-spacing: -0.015em; line-height: 1.15; }
 .d-sub { color: var(--mb-muted); margin: 6px 0 0; }
 .d-sub.small { font-size: 15px; margin: 4px 0 0; }
 .auto { margin-top: 28px; }

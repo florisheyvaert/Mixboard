@@ -61,3 +61,33 @@ function fallbackPath(entityId: string, state?: string, deviceClass?: unknown): 
     default: return mdiCircleOutline;
   }
 }
+
+/** An icon by name ("mdi:window-shutter") through Home Assistant's own ha-icon element. */
+export function NamedIcon({ icon, size = 24 }: { icon: string; size?: number }) {
+  const [native, setNative] = useState(() => !!customElements.get("ha-icon"));
+  useEffect(() => {
+    if (native) return;
+    let live = true;
+    customElements.whenDefined("ha-icon").then(() => live && setNative(true));
+    return () => { live = false; };
+  }, [native]);
+  if (native) return createElement("ha-icon", { icon, class: "e-icon", style: { "--mdc-icon-size": `${size}px` } });
+  return (
+    <svg className="e-icon" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path d={mdiRobot} fill="currentColor" />
+    </svg>
+  );
+}
+
+/**
+ * Icon for an automation tile or group: the icon set on the automation in Home Assistant,
+ * else its category's icon, else HA's automation icon. A group uses its first automation.
+ */
+export function AutomationIcon({ hass, entityId, categoryIcon, size = 24 }: {
+  hass: HomeAssistant; entityId: string; categoryIcon: string | null; size?: number;
+}) {
+  const own = hass.states[entityId]?.attributes.icon;
+  if (typeof own === "string" && own) return <NamedIcon icon={own} size={size} />;
+  if (categoryIcon) return <NamedIcon icon={categoryIcon} size={size} />;
+  return <EntityIcon hass={hass} entityId={entityId} size={size} />;
+}

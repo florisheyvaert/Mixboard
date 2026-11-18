@@ -3,6 +3,7 @@ import { Icon } from "../icons";
 import { shortName, type Automation, type Item } from "../model";
 import type { HomeAssistant } from "../types";
 import { errorText, Switch } from "../ui";
+import { AutomationIcon } from "./EntityIcon";
 
 interface Props {
   hass: HomeAssistant;
@@ -103,7 +104,10 @@ export function Detail({ hass, item, onBack, onEdit, onRun, onMore, toast }: Pro
         <Icon name="back" />
         All automations
       </button>
-      <h1 className="d-title">{item.name}</h1>
+      <h1 className="d-title">
+        <AutomationIcon hass={hass} entityId={single.entityId} categoryIcon={item.category.icon} size={30} />
+        {item.name}
+      </h1>
       <p className="d-sub">
         {item.category.name}
         {" · "}
