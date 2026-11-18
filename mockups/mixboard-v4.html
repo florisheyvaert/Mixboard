@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mixboard mockup v4</title>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* One neutral surface, one accent. The accent only marks values you can change. */
+:root {
+  --bg: #ffffff; --text: #1c1d1f; --muted: #8b8f94; --line: #ececec; --soft: #f4f4f5;
+  --accent: #0b7fd4; --sheet: #ffffff; --scrim: rgba(0,0,0,.28); --on: #0b7fd4; --off: #cfd2d6;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141516; --text: #ececed; --muted: #8e9297; --line: #26282a; --soft: #1f2123; --accent: #5ab4f5; --sheet: #1c1e20; --scrim: rgba(0,0,0,.55); --on: #5ab4f5; --off: #3a3d40; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #141516; --text: #ececed; --muted: #8e9297; --line: #26282a; --soft: #1f2123; --accent: #5ab4f5; --sheet: #1c1e20; --scrim: rgba(0,0,0,.55); --on: #5ab4f5; --off: #3a3d40; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--text); font: 17px/1.45 Figtree, system-ui, sans-serif; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.page { max-width: 600px; margin: 0 auto; padding: 0 20px 80px; }
+svg.i { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.plain { border: 0; background: none; padding: 0; cursor: pointer; }
+
+/* Header */
+.head { display: flex; align-items: center; gap: 4px; padding: 28px 0 16px; }
+.head h1 { font-size: 30px; font-weight: 600; margin: 0 auto 0 0; letter-spacing: -.01em; }
+.iconbtn { width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: none; color: var(--muted); cursor: pointer; border-radius: 50%; }
+.iconbtn:hover { color: var(--text); }
+.search { display: flex; align-items: center; gap: 10px; background: var(--soft); border-radius: 12px; padding: 0 14px; height: 46px; color: var(--muted); }
+.search input { flex: 1; border: 0; outline: 0; background: none; color: var(--text); }
+.search input::placeholder { color: var(--muted); }
+.tabs { display: flex; gap: 22px; overflow-x: auto; margin: 18px 0 6px; scrollbar-width: none; }
+.tab { border: 0; background: none; padding: 6px 0; cursor: pointer; color: var(--muted); font-weight: 500; white-space: nowrap; border-bottom: 2px solid transparent; }
+.tab[aria-pressed="true"] { color: var(--text); border-bottom-color: var(--text); }
+
+/* List */
+.section { font-size: 14px; color: var(--muted); margin: 26px 0 2px; font-weight: 500; }
+.item { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.item .txt { flex: 1; min-width: 0; }
+.item .name { font-weight: 500; }
+.item .sub { color: var(--muted); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item.off .name { color: var(--muted); }
+.item .tag { font-size: 14px; color: var(--muted); }
+.item .chev { color: var(--line); }
+.item:hover .chev { color: var(--muted); }
+.more { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 18px 0; font-size: 15px; }
+.empty { color: var(--muted); padding: 30px 0; }
+
+/* Detail */
+.back { display: inline-flex; align-items: center; gap: 2px; color: var(--muted); margin: 22px 0 10px -6px; padding: 6px; }
+.d-title { font-size: 30px; font-weight: 600; margin: 0; letter-spacing: -.01em; line-height: 1.15; }
+.d-sub { color: var(--muted); margin: 6px 0 0; }
+.set { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 16px 0; border: 0; border-bottom: 1px solid var(--line); background: none; cursor: pointer; }
+.set .label { flex: 1; }
+.set .value { color: var(--accent); font-weight: 500; }
+.set .note { display: block; font-size: 14px; color: var(--muted); }
+.set.static { cursor: default; }
+.set .go { color: var(--muted); }
+.set.danger .label { color: var(--text); }
+
+/* Switch */
+.switch { position: relative; width: 46px; height: 28px; border-radius: 14px; border: 0; padding: 0; background: var(--off); cursor: pointer; flex: none; transition: background .15s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s; }
+.switch[aria-checked="true"] { background: var(--on); }
+.switch[aria-checked="true"]::after { transform: translateX(18px); }
+
+/* Sheet (bottom on mobile, centered on desktop) */
+.scrim { position: fixed; inset: 0; background: var(--scrim); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; }
+.scrim.open { opacity: 1; pointer-events: auto; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; background: var(--sheet); border-radius: 20px 20px 0 0; padding: 10px 24px 28px; transform: translateY(105%); transition: transform .25s ease; max-width: 520px; margin: 0 auto; }
+.sheet.open { transform: none; }
+.grip { width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 14px; }
+.sheet h2 { font-size: 17px; font-weight: 500; color: var(--muted); margin: 0; text-align: center; }
+.bigval { font-size: 56px; font-weight: 600; text-align: center; margin: 16px 0 8px; letter-spacing: -.02em; line-height: 1; }
+.bigval small { font-size: 22px; color: var(--muted); font-weight: 500; margin-left: 4px; }
+.stepper { display: flex; align-items: center; gap: 14px; margin: 18px 0 6px; }
+.stepper .iconbtn { color: var(--text); background: var(--soft); flex: none; }
+input[type=range] { flex: 1; accent-color: var(--accent); height: 30px; cursor: pointer; }
+.quick { display: flex; justify-content: center; gap: 4px; flex-wrap: wrap; margin-top: 10px; }
+.quick button { border: 0; background: none; color: var(--muted); padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.quick button[aria-pressed="true"] { color: var(--text); font-weight: 600; }
+.timeinput { display: block; margin: 16px auto 8px; border: 0; background: none; font-size: 56px; font-weight: 600; text-align: center; letter-spacing: -.02em; width: 100%; }
+.timeinput::-webkit-calendar-picker-indicator { display: none; }
+.options { margin-top: 8px; }
+.opt { display: flex; align-items: center; width: 100%; border: 0; background: none; padding: 15px 0; border-bottom: 1px solid var(--line); cursor: pointer; text-align: left; }
+.opt span { flex: 1; }
+.opt .check { color: var(--accent); visibility: hidden; }
+.opt[aria-checked="true"] .check { visibility: visible; }
+.opt small { display: block; color: var(--muted); font-size: 14px; }
+.sheet-foot { display: flex; align-items: center; margin-top: 22px; }
+.sheet-foot .reset { color: var(--muted); font-size: 15px; }
+.sheet-foot .reset:disabled { visibility: hidden; }
+.done { margin-left: auto; border: 0; background: var(--text); color: var(--bg); border-radius: 12px; padding: 12px 26px; font-weight: 600; cursor: pointer; }
+
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); opacity: 0; z-index: 20; background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-size: 15px; transition: .2s; pointer-events: none; display: flex; gap: 14px; align-items: center; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.toast button { border: 0; background: none; color: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; padding: 0; }
+
+@media (min-width: 700px) {
+  .sheet { top: 50%; bottom: auto; border-radius: 20px; transform: translateY(-40%); opacity: 0; pointer-events: none; transition: .2s; }
+  .sheet.open { transform: translateY(-50%); opacity: 1; pointer-events: auto; }
+  .grip { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="page" id="view"></main>
+<div class="scrim" id="scrim"></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></section>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const I = {
+  search: '<svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>',
+  chev: '<svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
+  back: '<svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>',
+  minus: '<svg class="i" viewBox="0 0 24 24"><path d="M6 12h12"/></svg>',
+  plus: '<svg class="i" viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>',
+  check: '<svg class="i" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  out: '<svg class="i" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M14 5h5v5M19 5l-8 8M18 14v5H5V6h5"/></svg>',
+  layers: '<svg class="i" viewBox="0 0 24 24"><path d="M12 4l8 4-8 4-8-4 8-4z"/><path d="M4 12l8 4 8-4M4 16l8 4 8-4"/></svg>',
+  moon: '<svg class="i" viewBox="0 0 24 24"><path d="M19 14.5A7.5 7.5 0 019.5 5 7.5 7.5 0 1019 14.5z"/></svg>',
+};
+const groups = [{ id: "covers", name: "Covers" }, { id: "lighting", name: "Lighting" }, { id: "climate", name: "Climate" }, { id: "notify", name: "Notifications" }];
+const H = {
+  sunset_delay:  { name: "Wait after sunset", type: "number", min: 0, max: 120, step: 5, unit: "min", value: 30, quick: [0, 15, 30, 45, 60] },
+  close_all:     { name: "Close every shutter", type: "boolean", value: true, note: ["Only the living room closes", "All shutters close"] },
+  mode:          { name: "Shutter mode", type: "select", options: ["Normal", "Storm", "Holiday"], value: "Normal", notes: { Normal: "Follows the sun", Storm: "Stays open to protect the slats", Holiday: "Closes at random times" } },
+  sunrise_delay: { name: "Wait after sunrise", type: "number", min: 0, max: 120, step: 5, unit: "min", value: 10, quick: [0, 10, 20, 30] },
+  earliest_open: { name: "Never open before", type: "time", value: "07:30" },
+  blackout_time: { name: "Close at", type: "time", value: "21:30" },
+  night_level:   { name: "Night brightness", type: "number", min: 1, max: 100, step: 1, unit: "%", value: 20, quick: [5, 10, 20, 40] },
+  night_start:   { name: "Night starts at", type: "time", value: "23:00" },
+  night_end:     { name: "Night ends at", type: "time", value: "06:30" },
+  day_level:     { name: "Day brightness", type: "number", min: 1, max: 100, step: 1, unit: "%", value: 80, quick: [50, 80, 100] },
+  garden_offset: { name: "Turn on after sunset", type: "number", min: 0, max: 60, step: 5, unit: "min", value: 15, quick: [0, 15, 30] },
+  garden_off:    { name: "Turn off at", type: "time", value: "22:00" },
+  humidity:      { name: "Start above humidity", type: "number", min: 40, max: 90, step: 1, unit: "%", value: 65, quick: [55, 65, 75] },
+  runon:         { name: "Keep running for", type: "number", min: 0, max: 30, step: 1, unit: "min", value: 10, quick: [5, 10, 15] },
+};
+const automations = [
+  { id: "sunset_shutters", name: "Sunset shutters", group: "covers", enabled: true, last: "today at 18:42", helpers: ["sunset_delay", "close_all", "mode"] },
+  { id: "sunrise_shutters", name: "Sunrise shutters", group: "covers", enabled: true, last: "today at 07:55", helpers: ["sunrise_delay", "earliest_open", "mode"] },
+  { id: "bedroom_blackout", name: "Bedroom blackout", group: "covers", enabled: false, last: "3 days ago", helpers: ["blackout_time"] },
+  { id: "hall_night", name: "Hall night mode", group: "lighting", enabled: true, last: "yesterday at 23:00", helpers: ["night_level", "night_start", "night_end"] },
+  { id: "hall_day", name: "Hall day brightness", group: "lighting", enabled: true, last: "today at 06:30", helpers: ["day_level"] },
+  { id: "garden_path", name: "Garden path", group: "lighting", enabled: true, last: "yesterday at 17:21", helpers: ["garden_offset", "garden_off"] },
+  { id: "bath_fan", name: "Bathroom fan", group: "climate", enabled: true, last: "today at 08:12", helpers: ["humidity", "runon"] },
+  { id: "washer_done", name: "Washing machine done", group: "notify", enabled: true, last: "2 days ago", helpers: [] },
+  { id: "door_open", name: "Front door left open", group: "notify", enabled: true, last: "never", helpers: [] },
+];
+const profiles = [
+  { name: "Summer", values: { sunset_delay: 15, sunrise_delay: 0, garden_offset: 30, night_start: "23:30" } },
+  { name: "Autumn", values: { sunset_delay: 30, sunrise_delay: 10, garden_offset: 15, night_start: "23:00" } },
+  { name: "Winter", values: { sunset_delay: 45, sunrise_delay: 20, garden_offset: 5, night_start: "22:30" } },
+];
+
+const ui = { q: "", group: null, showAll: false, open: null, sheet: null, scroll: 0 };
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const A = id => automations.find(a => a.id === id);
+
+function fmt(h, v = h.value) {
+  if (h.type === "boolean") return v ? "On" : "Off";
+  if (h.type !== "number") return v;
+  if (h.unit === "min") { if (v === 0) return "No wait"; if (v >= 60) { const m = v % 60; return `${Math.floor(v / 60)} h${m ? " " + m + " min" : ""}`; } return `${v} min`; }
+  return h.unit === "%" ? `${v}%` : `${v} ${h.unit}`;
+}
+
+/* ── Overview: names and plain values, nothing else ── */
+function renderList() {
+  const match = a => (!ui.group || a.group === ui.group) && (!ui.q || [a.name, ...a.helpers.map(k => H[k].name)].join(" ").toLowerCase().includes(ui.q.toLowerCase()));
+  const all = automations.filter(match), shown = all.filter(a => ui.showAll || a.helpers.length), hidden = all.length - shown.length;
+  $("#view").innerHTML = `
+    <div class="head"><h1>Mixboard</h1>
+      <button class="iconbtn" data-profiles aria-label="Profiles">${I.layers}</button>
+      <button class="iconbtn" data-theme aria-label="Light or dark">${I.moon}</button></div>
+    <label class="search">${I.search}<input id="q" type="search" placeholder="Search" value="${esc(ui.q)}" aria-label="Search automations"></label>
+    <div class="tabs">${[{ id: null, name: "All" }, ...groups].map(g => `<button class="tab" data-group="${g.id ?? ""}" aria-pressed="${ui.group === g.id}">${g.name}</button>`).join("")}</div>
+    ${groups.map(g => {
+      const list = shown.filter(a => a.group === g.id);
+      if (!list.length) return "";
+      return `${ui.group ? "" : `<div class="section">${g.name}</div>`}` + list.map(a => `
+        <div class="item ${a.enabled ? "" : "off"}" data-open="${a.id}" role="link" tabindex="0">
+          <div class="txt"><div class="name">${esc(a.name)}</div>
+            <div class="sub">${a.helpers.length ? a.helpers.map(k => esc(fmt(H[k]))).join(" · ") : "No settings"}</div></div>
+          ${a.enabled ? "" : `<span class="tag">Off</span>`}
+          <span class="chev">${I.chev}</span></div>`).join("");
+    }).join("") || `<p class="empty">Nothing matches “${esc(ui.q)}”.</p>`}
+    ${hidden ? `<button class="more" data-showall>Show ${hidden} without settings</button>` : ""}`;
+}
+
+/* ── Detail: a list of settings, tap one to change it ── */
+function renderDetail() {
+  const a = A(ui.open), g = groups.find(x => x.id === a.group);
+  $("#view").innerHTML = `
+    <button class="plain back" data-back>${I.back}${g.name}</button>
+    <h1 class="d-title">${esc(a.name)}</h1>
+    <p class="d-sub" data-last>${a.enabled ? "Last ran " + esc(a.last) : "Off"}</p>
+    ${a.helpers.length ? `<div class="section">Settings</div>` + a.helpers.map(k => {
+      const h = H[k];
+      if (h.type === "boolean") return `<div class="set static"><span class="label">${esc(h.name)}<span class="note" data-note="${k}">${esc(h.note[h.value ? 1 : 0])}</span></span>
+        <button class="switch" role="switch" data-bool="${k}" aria-checked="${h.value}" aria-label="${esc(h.name)}"></button></div>`;
+      return `<button class="set" data-edit="${k}"><span class="label">${esc(h.name)}</span><span class="value" data-val="${k}">${esc(fmt(h))}</span></button>`;
+    }).join("") : `<p class="d-sub" style="margin-top:24px">This automation has no settings. Add an input helper to it in Home Assistant and it shows up here.</p>`}
+    <div class="section">Automation</div>
+    <div class="set static"><span class="label">Enabled</span><button class="switch" role="switch" data-toggle aria-checked="${a.enabled}" aria-label="Enabled"></button></div>
+    <button class="set" data-runsheet><span class="label">Run now</span><span class="go">${I.chev}</span></button>
+    <button class="set"><span class="label">Traces</span><span class="go">${I.out}</span></button>
+    <button class="set"><span class="label">Edit in Home Assistant</span><span class="go">${I.out}</span></button>`;
+}
+function render() { ui.open ? renderDetail() : renderList(); }
+function go(id) {
+  if (id) ui.scroll = scrollY;
+  const from = ui.open; ui.open = id; render(); scrollTo(0, id ? 0 : ui.scroll);
+  const f = id ? $("[data-back]") : $(`[data-open="${from}"]`); if (f) f.focus({ preventScroll: true });
+}
+
+/* ── Sheet ── */
+let opener = null, original = null;
+function openSheet(kind, k) {
+  opener = document.activeElement; ui.sheet = { kind, k };
+  if (k) original = H[k].value;
+  renderSheet();
+  $("#sheet").classList.add("open"); $("#scrim").classList.add("open");
+  const f = $("#sheet").querySelector("input, .opt[aria-checked=true], .opt, .done"); if (f) f.focus({ preventScroll: true });
+}
+function closeSheet() {
+  if (!ui.sheet) return;
+  ui.sheet = null; $("#sheet").classList.remove("open"); $("#scrim").classList.remove("open");
+  if (opener) opener.focus({ preventScroll: true });
+}
+function renderSheet() {
+  const s = ui.sheet, el = $("#sheet");
+  let body = "", title = "";
+  if (s.kind === "edit") {
+    const h = H[s.k]; title = h.name;
+    if (h.type === "number") {
+      const [n, u] = h.unit === "%" ? [h.value, "%"] : [fmt(h), ""];
+      body = `<div class="bigval" data-big>${esc(n)}${u ? `<small>${u}</small>` : ""}</div>
+        <div class="stepper"><button class="iconbtn" data-inc="-1" aria-label="Less">${I.minus}</button>
+          <input type="range" data-range min="${h.min}" max="${h.max}" step="${h.step}" value="${h.value}" aria-label="${esc(h.name)}">
+          <button class="iconbtn" data-inc="1" aria-label="More">${I.plus}</button></div>
+        ${h.quick ? `<div class="quick">${h.quick.map(q => `<button data-quick="${q}" aria-pressed="${q === h.value}">${esc(fmt(h, q))}</button>`).join("")}</div>` : ""}`;
+    } else if (h.type === "time") {
+      body = `<input class="timeinput" type="time" data-time value="${h.value}" aria-label="${esc(h.name)}">
+        <div class="quick"><button data-shift="-15">15 min earlier</button><button data-shift="15">15 min later</button></div>`;
+    } else if (h.type === "select") {
+      body = `<div class="options" role="radiogroup" aria-label="${esc(h.name)}">${h.options.map(o => `<button class="opt" role="radio" data-opt="${esc(o)}" aria-checked="${o === h.value}"><span>${esc(o)}${h.notes ? `<small>${esc(h.notes[o])}</small>` : ""}</span><span class="check">${I.check}</span></button>`).join("")}</div>`;
+    }
+    body += `<div class="sheet-foot"><button class="plain reset" data-reset ${h.value === original ? "disabled" : ""}>Back to ${esc(fmt(h, original))}</button><button class="done" data-close>Done</button></div>`;
+  } else if (s.kind === "run") {
+    const a = A(ui.open); title = "Run now";
+    body = `<div class="options">
+      <button class="opt" data-trigger><span>Trigger<small>Runs only if the conditions pass${a.enabled ? "" : ". Turn the automation on first."}</small></span></button>
+      <button class="opt" data-run><span>Run actions<small>Skips the conditions and runs right away</small></span></button></div>
+      <div class="sheet-foot"><button class="done" data-close style="background:var(--soft);color:var(--text)">Cancel</button></div>`;
+  } else if (s.kind === "profiles") {
+    title = "Profiles";
+    body = `<div class="options">${profiles.map((p, i) => `<button class="opt" data-profile="${i}"><span>${esc(p.name)}<small>Sets ${Object.keys(p.values).length} settings</small></span></button>`).join("")}
+      <button class="opt" data-save><span>Save current settings as a profile</span></button></div>
+      <div class="sheet-foot"><button class="done" data-close style="background:var(--soft);color:var(--text)">Close</button></div>`;
+  }
+  el.innerHTML = `<div class="grip"></div><h2 id="sheetTitle">${esc(title)}</h2>${body}`;
+}
+
+/* ── Values ── */
+function setValue(k, v) {
+  const h = H[k];
+  if (h.type === "number") v = Math.min(h.max, Math.max(h.min, Math.round(v / h.step) * h.step));
+  h.value = v;
+  document.querySelectorAll(`[data-val="${k}"]`).forEach(e => e.textContent = fmt(h));
+  document.querySelectorAll(`[data-note="${k}"]`).forEach(e => e.textContent = h.note[h.value ? 1 : 0]);
+  if (ui.sheet && ui.sheet.k === k) {
+    const big = $("[data-big]");
+    if (big) big.innerHTML = h.unit === "%" ? `${h.value}<small>%</small>` : esc(fmt(h));
+    const r = $("[data-range]"); if (r && +r.value !== h.value) r.value = h.value;
+    document.querySelectorAll("[data-quick]").forEach(b => b.setAttribute("aria-pressed", +b.dataset.quick === h.value));
+    document.querySelectorAll("[data-opt]").forEach(b => b.setAttribute("aria-checked", b.dataset.opt === h.value));
+    const t = $("[data-time]"); if (t && t.value !== h.value) t.value = h.value;
+    const reset = $("[data-reset]"); if (reset) reset.disabled = h.value === original;
+  }
+}
+function shift(k, m) {
+  const [hh, mm] = H[k].value.split(":").map(Number), t = ((hh * 60 + mm + m) % 1440 + 1440) % 1440;
+  setValue(k, `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`);
+}
+let tt;
+function toast(msg, undo) {
+  const t = $("#toast");
+  t.innerHTML = `<span>${esc(msg)}</span>${undo ? `<button id="undo">Undo</button>` : ""}`;
+  if (undo) $("#undo").onclick = () => { undo(); t.classList.remove("show"); };
+  t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), 4000);
+}
+
+/* ── Events ── */
+document.addEventListener("click", e => {
+  if (e.target.id === "scrim") { closeSheet(); return; }
+  const t = e.target.closest("button, [data-open]"); if (!t) return;
+  const d = t.dataset, s = ui.sheet;
+  if (d.open) return go(d.open);
+  if ("back" in d) return go(null);
+  if (d.group !== undefined) { ui.group = d.group || null; return renderList(); }
+  if ("showall" in d) { ui.showAll = true; return renderList(); }
+  if ("theme" in d) { const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; r.dataset.theme = dark ? "light" : "dark"; return; }
+  if ("profiles" in d) return openSheet("profiles");
+  if (d.edit) return openSheet("edit", d.edit);
+  if ("runsheet" in d) return openSheet("run");
+  if (d.bool) { const h = H[d.bool]; setValue(d.bool, !h.value); t.setAttribute("aria-checked", h.value); return; }
+  if ("toggle" in d) { const a = A(ui.open); a.enabled = !a.enabled; t.setAttribute("aria-checked", a.enabled); $("[data-last]").textContent = a.enabled ? "Last ran " + a.last : "Off"; return; }
+  if ("close" in d) return closeSheet();
+  if (s && s.kind === "edit") {
+    if (d.inc) setValue(s.k, H[s.k].value + H[s.k].step * +d.inc);
+    if (d.quick) setValue(s.k, +d.quick);
+    if (d.opt) setValue(s.k, d.opt);
+    if (d.shift) shift(s.k, +d.shift);
+    if ("reset" in d) setValue(s.k, original);
+    return;
+  }
+  if ("trigger" in d || "run" in d) {
+    const a = A(ui.open);
+    if ("trigger" in d && !a.enabled) { closeSheet(); return toast(`${a.name} is off. Turn it on to trigger it.`); }
+    a.last = "just now"; $("[data-last]").textContent = "Last ran just now"; closeSheet();
+    return toast("trigger" in d ? "Triggered" : "Actions ran");
+  }
+  if (d.profile !== undefined) {
+    const p = profiles[+d.profile], prev = Object.fromEntries(Object.keys(p.values).map(k => [k, H[k].value]));
+    Object.entries(p.values).forEach(([k, v]) => setValue(k, v)); closeSheet(); render();
+    return toast(`${p.name} applied`, () => { Object.entries(prev).forEach(([k, v]) => setValue(k, v)); render(); });
+  }
+  if ("save" in d) { profiles.push({ name: `Profile ${profiles.length + 1}`, values: Object.fromEntries(Object.entries(H).map(([k, h]) => [k, h.value])) }); closeSheet(); return toast(`Saved as Profile ${profiles.length}`); }
+});
+document.addEventListener("input", e => {
+  if (e.target.matches("[data-range]")) setValue(ui.sheet.k, +e.target.value);
+  if (e.target.id === "q") { ui.q = e.target.value.trim(); const p = e.target.selectionStart; renderList(); const q = $("#q"); q.focus(); q.setSelectionRange(p, p); }
+});
+document.addEventListener("change", e => { if (e.target.matches("[data-time]") && e.target.value) setValue(ui.sheet.k, e.target.value); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { if (ui.sheet) closeSheet(); else if (ui.open) go(null); }
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches("[data-open]")) { e.preventDefault(); go(e.target.dataset.open); }
+});
+render();
+</script>
+</body>
+</html>

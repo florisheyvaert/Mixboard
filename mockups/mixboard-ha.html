@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mixboard mockup (HA style)</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css" rel="stylesheet">
+<style>
+/* Tokens mirror HA's default theme variables, so the real panel can map 1:1 onto --primary-color etc. */
+:root {
+  --primary: #03a9f4; --primary-ink: #fff; --accent: #ff9800;
+  --bg: #fafafa; --card: #ffffff; --text: #212121; --text2: #727272; --divider: rgba(0,0,0,.12);
+  --hover: rgba(0,0,0,.04); --selected: rgba(3,169,244,.12); --header: #ffffff;
+  --chip: #eef6fb; --snack: #323232; --off: #9e9e9e;
+  --c-covers: #3f7fd0; --c-lighting: #e8a317; --c-climate: #d0533c; --c-notify: #6f8a7a;
+  --radius: 12px; color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111111; --card: #1c1c1c; --text: #e1e1e1; --text2: #9b9b9b; --divider: rgba(225,225,225,.12);
+  --hover: rgba(255,255,255,.05); --selected: rgba(3,169,244,.18); --header: #1c1c1c; --chip: #1d2b33; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #111111; --card: #1c1c1c; --text: #e1e1e1; --text2: #9b9b9b; --divider: rgba(225,225,225,.12);
+  --hover: rgba(255,255,255,.05); --selected: rgba(3,169,244,.18); --header: #1c1c1c; --chip: #1d2b33; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--text); font: 14px/1.45 Roboto, system-ui, sans-serif; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.mdi { font-size: 22px; line-height: 1; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* App header (HA toolbar) */
+.toolbar { height: 56px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 12px;
+  background: var(--header); border-bottom: 1px solid var(--divider); position: sticky; top: 0; z-index: 4; }
+.toolbar h1 { font-size: 20px; font-weight: 400; margin: 0 auto 0 8px; }
+.icon-btn { width: 40px; height: 40px; border-radius: 50%; border: 0; background: none; cursor: pointer; display: grid; place-items: center; color: var(--text2); }
+.icon-btn:hover { background: var(--hover); }
+.text-btn { border: 0; background: none; color: var(--primary); font-weight: 500; padding: 8px 12px; border-radius: 8px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.text-btn:hover { background: var(--selected); }
+.filled-btn { border: 0; background: var(--primary); color: var(--primary-ink); font-weight: 500; padding: 9px 18px; border-radius: 20px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.outlined-btn { border: 1px solid var(--divider); background: none; color: var(--primary); font-weight: 500; padding: 8px 16px; border-radius: 20px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.filled-btn .mdi, .outlined-btn .mdi, .text-btn .mdi { font-size: 18px; }
+.filled-btn:disabled, .outlined-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Two-pane layout */
+.app { display: grid; grid-template-columns: minmax(340px, 420px) 1fr; height: calc(100vh - 56px); }
+.list-pane { border-right: 1px solid var(--divider); overflow-y: auto; background: var(--card); }
+.detail-pane { overflow-y: auto; }
+
+/* Search + filters */
+.filters { padding: 12px 12px 8px; position: sticky; top: 0; background: var(--card); z-index: 2; border-bottom: 1px solid var(--divider); }
+.search { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border-radius: 22px; background: var(--bg); border: 1px solid var(--divider); }
+.search:focus-within { border-color: var(--primary); }
+.search .mdi { color: var(--text2); font-size: 20px; }
+.search input { flex: 1; border: 0; outline: 0; background: none; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.fchip { border: 1px solid var(--divider); background: none; border-radius: 16px; padding: 4px 12px; cursor: pointer; font-size: 13px; color: var(--text2); display: inline-flex; gap: 4px; align-items: center; }
+.fchip[aria-pressed="true"] { background: var(--selected); color: var(--primary); border-color: transparent; font-weight: 500; }
+.fchip .mdi { font-size: 16px; }
+
+.group-h { display: flex; align-items: center; gap: 8px; padding: 14px 16px 6px; font-size: 13px; font-weight: 500; color: var(--text2); }
+.group-h .n { margin-left: auto; font-weight: 400; }
+.row { display: flex; align-items: center; gap: 14px; padding: 10px 8px 10px 16px; cursor: pointer; border-left: 3px solid transparent; }
+.row:hover { background: var(--hover); }
+.row[aria-current="true"] { background: var(--selected); border-left-color: var(--primary); }
+.row .ic { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
+.row.off .ic { background: var(--hover); color: var(--off); }
+.row .txt { flex: 1; min-width: 0; }
+.row .name { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .sum { color: var(--text2); font-size: 13px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.row .sum b { color: var(--text); font-weight: 500; }
+.row.off .name { color: var(--text2); }
+.empty { padding: 32px 20px; color: var(--text2); }
+.empty p { margin: 0 0 10px; font-size: 15px; }
+
+/* Switch (HA style) */
+.switch { position: relative; width: 36px; height: 20px; flex: none; border: 0; padding: 0; background: none; cursor: pointer; }
+.switch::before { content: ""; position: absolute; inset: 3px 0; border-radius: 7px; background: var(--off); opacity: .5; transition: .15s; }
+.switch::after { content: ""; position: absolute; top: 0; left: 0; width: 20px; height: 20px; border-radius: 50%; background: #fafafa; box-shadow: 0 1px 3px rgba(0,0,0,.4); transition: .15s; }
+.switch[aria-checked="true"]::before { background: var(--primary); }
+.switch[aria-checked="true"]::after { left: 16px; background: var(--primary); }
+
+/* Run menu */
+.menu-wrap { position: relative; }
+.menu { position: absolute; right: 0; top: 100%; z-index: 6; min-width: 250px; padding: 6px 0; background: var(--card); border-radius: 8px; box-shadow: 0 4px 18px rgba(0,0,0,.25); display: none; }
+.menu.open { display: block; }
+.menu button { display: flex; gap: 14px; align-items: flex-start; width: 100%; border: 0; background: none; text-align: left; padding: 10px 16px; cursor: pointer; }
+.menu button:hover, .menu button:focus-visible { background: var(--hover); outline: 0; }
+.menu .mdi { color: var(--text2); font-size: 20px; }
+.menu small { display: block; color: var(--text2); font-size: 12px; }
+.menu hr { border: 0; border-top: 1px solid var(--divider); margin: 6px 0; }
+
+/* Detail */
+.detail { max-width: 760px; margin: 0 auto; padding: 20px 24px 100px; }
+.d-head { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.d-head .ic { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); flex: none; }
+.d-head .ic .mdi { font-size: 26px; }
+.d-title { flex: 1; min-width: 200px; }
+.d-title h2 { margin: 2px 0 2px; font-size: 24px; font-weight: 400; }
+.d-title .meta { color: var(--text2); font-size: 13px; }
+.status { display: flex; align-items: center; gap: 10px; padding-top: 8px; color: var(--text2); }
+.back { display: none; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0 20px; }
+.card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--divider); margin-bottom: 16px; }
+.card h3 { margin: 0; padding: 14px 16px 4px; font-size: 16px; font-weight: 500; }
+.card .sub { padding: 0 16px 8px; color: var(--text2); font-size: 13px; margin: 0; }
+.summary { padding: 4px 16px 16px; font-size: 18px; line-height: 1.9; margin: 0; }
+.vchip { border: 0; background: var(--chip); color: var(--primary); font-weight: 500; border-radius: 8px; padding: 2px 10px; cursor: pointer; font-size: 17px; }
+.vchip:hover { background: var(--selected); }
+.disabled-note { display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 14%, transparent); margin-bottom: 16px; }
+.disabled-note .mdi { color: var(--accent); }
+
+.setting { padding: 14px 16px 16px; border-top: 1px solid var(--divider); transition: background .6s; }
+.card .setting:first-of-type { border-top: 0; }
+.setting.flash { background: var(--selected); transition: none; }
+.s-top { display: flex; align-items: center; gap: 14px; }
+.s-top .mdi { color: var(--text2); width: 24px; text-align: center; }
+.s-label { flex: 1; min-width: 0; }
+.s-label .t { font-size: 15px; }
+.s-label .e { color: var(--text2); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.s-value { font-size: 15px; font-weight: 500; white-space: nowrap; }
+.s-body { margin: 10px 0 0 38px; }
+.slider-line { display: flex; align-items: center; gap: 8px; }
+input[type=range] { flex: 1; accent-color: var(--primary); height: 28px; cursor: pointer; }
+.step { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--divider); background: none; cursor: pointer; display: grid; place-items: center; color: var(--text2); flex: none; }
+.step .mdi { font-size: 18px; }
+.step:hover { background: var(--hover); }
+.presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.preset { border: 1px solid var(--divider); background: none; border-radius: 14px; padding: 2px 10px; font-size: 12px; cursor: pointer; color: var(--text2); }
+.preset[aria-pressed="true"] { border-color: var(--primary); color: var(--primary); background: var(--selected); }
+.seg { display: inline-flex; border: 1px solid var(--divider); border-radius: 18px; overflow: hidden; }
+.seg button { border: 0; background: none; padding: 7px 16px; cursor: pointer; color: var(--text2); }
+.seg button + button { border-left: 1px solid var(--divider); }
+.seg button[aria-pressed="true"] { background: var(--selected); color: var(--primary); font-weight: 500; }
+.time-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+input[type=time] { border: 1px solid var(--divider); border-radius: 8px; padding: 8px 10px; background: var(--bg); font-size: 16px; }
+.bulb { width: 26px; height: 26px; border-radius: 50%; flex: none; background: radial-gradient(circle, #ffd54f calc(var(--b) * 1%), transparent 70%); box-shadow: 0 0 calc(var(--b) * .25px) calc(var(--b) * .12px) rgba(255, 200, 60, .55); border: 1px solid var(--divider); }
+.via { font-size: 12px; color: var(--text2); margin-left: 38px; margin-top: 6px; display: flex; gap: 4px; align-items: center; }
+.via .mdi { font-size: 14px; width: auto; }
+.links { display: flex; gap: 4px; flex-wrap: wrap; padding: 4px 8px 8px; }
+.placeholder { display: grid; place-items: center; height: 100%; color: var(--text2); text-align: center; padding: 40px; }
+.placeholder .mdi { font-size: 48px; display: block; margin-bottom: 8px; }
+
+/* Snackbar with undo */
+.snack { position: fixed; left: 24px; bottom: 24px; z-index: 10; background: var(--snack); color: #fff; border-radius: 6px; padding: 6px 8px 6px 16px; display: flex; gap: 16px; align-items: center; min-height: 48px; max-width: calc(100% - 32px);
+  box-shadow: 0 3px 10px rgba(0,0,0,.3); transform: translateY(120px); transition: transform .2s; }
+.snack.show { transform: none; }
+.snack button { border: 0; background: none; color: #4fc3f7; font-weight: 500; cursor: pointer; padding: 8px; }
+
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; height: auto; }
+  .list-pane { border-right: 0; }
+  .app.show-detail .list-pane { display: none; }
+  .app:not(.show-detail) .detail-pane { display: none; }
+  .back { display: grid; }
+  .detail { padding: 12px 16px 100px; }
+  .s-body { margin-left: 0; }
+  .via { margin-left: 0; }
+  .snack { left: 16px; right: 16px; bottom: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="toolbar">
+  <button class="icon-btn" aria-label="Home Assistant menu"><span class="mdi mdi-menu"></span></button>
+  <h1>Mixboard</h1>
+  <div class="menu-wrap">
+    <button class="text-btn" id="profilesBtn" aria-haspopup="true" aria-expanded="false"><span class="mdi mdi-palette-swatch-outline"></span>Profiles</button>
+    <div class="menu" id="profilesMenu" role="menu"></div>
+  </div>
+  <button class="icon-btn" id="themeBtn" aria-label="Toggle light / dark"><span class="mdi mdi-theme-light-dark"></span></button>
+</header>
+
+<div class="app" id="app">
+  <aside class="list-pane">
+    <div class="filters">
+      <label class="search"><span class="mdi mdi-magnify"></span><span class="sr">Search</span>
+        <input id="q" type="search" placeholder="Search automations or settings"></label>
+      <div class="chips" id="chips"></div>
+    </div>
+    <nav id="list" aria-label="Automations"></nav>
+  </aside>
+  <main class="detail-pane" id="detail"></main>
+</div>
+<div class="snack" id="snack" role="status" aria-live="polite"><span id="snackText"></span><button id="undoBtn">Undo</button></div>
+
+<script>
+const groups = [
+  { id: "covers", name: "Covers", icon: "mdi-window-shutter", c: "var(--c-covers)" },
+  { id: "lighting", name: "Lighting", icon: "mdi-lightbulb-outline", c: "var(--c-lighting)" },
+  { id: "climate", name: "Climate", icon: "mdi-fan", c: "var(--c-climate)" },
+  { id: "notify", name: "Notifications", icon: "mdi-bell-outline", c: "var(--c-notify)" },
+];
+const H = {
+  sunset_delay:  { eid: "input_number.shutters_sunset_delay", name: "Delay after sunset", icon: "mdi-timer-sand", type: "number", min: 0, max: 120, step: 5, unit: "min", value: 30, presets: [0, 15, 30, 45, 60] },
+  close_all:     { eid: "input_boolean.shutters_close_all", name: "Close every shutter", icon: "mdi-window-shutter", type: "boolean", value: true, words: ["only the living room", "every shutter"], desc: "Off closes only the living room" },
+  mode:          { eid: "input_select.shutters_mode", name: "Shutter mode", icon: "mdi-format-list-bulleted", type: "select", options: ["Normal", "Storm", "Holiday"], value: "Normal" },
+  sunrise_delay: { eid: "input_number.shutters_sunrise_delay", name: "Delay after sunrise", icon: "mdi-timer-sand", type: "number", min: 0, max: 120, step: 5, unit: "min", value: 10, presets: [0, 10, 20, 30] },
+  earliest_open: { eid: "input_datetime.shutters_earliest_open", name: "Never open before", icon: "mdi-clock-outline", type: "time", value: "07:30" },
+  blackout_time: { eid: "input_datetime.bedroom_blackout_time", name: "Close at", icon: "mdi-clock-outline", type: "time", value: "21:30" },
+  night_level:   { eid: "input_number.hall_night_brightness", name: "Night brightness", icon: "mdi-brightness-4", type: "number", min: 1, max: 100, step: 1, unit: "%", value: 20, bulb: true, presets: [5, 10, 20, 40] },
+  night_start:   { eid: "input_datetime.hall_night_start", name: "Night starts", icon: "mdi-weather-night", type: "time", value: "23:00" },
+  night_end:     { eid: "input_datetime.hall_night_end", name: "Night ends", icon: "mdi-weather-sunset-up", type: "time", value: "06:30" },
+  day_level:     { eid: "input_number.hall_day_brightness", name: "Day brightness", icon: "mdi-brightness-6", type: "number", min: 1, max: 100, step: 1, unit: "%", value: 80, bulb: true, presets: [50, 80, 100] },
+  garden_offset: { eid: "input_number.garden_sunset_offset", name: "Switch on after sunset", icon: "mdi-timer-sand", type: "number", min: 0, max: 60, step: 5, unit: "min", value: 15, presets: [0, 15, 30] },
+  garden_off:    { eid: "input_datetime.garden_off_time", name: "Switch off at", icon: "mdi-clock-outline", type: "time", value: "22:00" },
+  humidity:      { eid: "input_number.bath_humidity_threshold", name: "Start above humidity", icon: "mdi-water-percent", type: "number", min: 40, max: 90, step: 1, unit: "%", value: 65 },
+  runon:         { eid: "input_number.bath_fan_runon", name: "Keep running for", icon: "mdi-timer-sand", type: "number", min: 0, max: 30, step: 1, unit: "min", value: 10, presets: [5, 10, 15] },
+};
+const automations = [
+  { id: "sunset_shutters", name: "Sunset shutters", group: "covers", enabled: true, last: "today at 18:42",
+    helpers: ["sunset_delay", "close_all", "mode"], sentence: "When the sun sets, wait {sunset_delay}, then close {close_all}. Mode: {mode}." },
+  { id: "sunrise_shutters", name: "Sunrise shutters", group: "covers", enabled: true, last: "today at 07:55",
+    helpers: ["sunrise_delay", "earliest_open", "mode"], via: { mode: "script.shutters_open" },
+    sentence: "When the sun rises, wait {sunrise_delay}, but never open before {earliest_open}." },
+  { id: "bedroom_blackout", name: "Bedroom blackout", group: "covers", enabled: false, last: "3 days ago",
+    helpers: ["blackout_time"], sentence: "Close the bedroom blackout blind at {blackout_time}." },
+  { id: "hall_night", name: "Hall night mode", group: "lighting", enabled: true, last: "yesterday at 23:00",
+    helpers: ["night_level", "night_start", "night_end"], sentence: "Between {night_start} and {night_end}, motion turns the hall lights on at {night_level}." },
+  { id: "hall_day", name: "Hall day brightness", group: "lighting", enabled: true, last: "today at 06:30",
+    helpers: ["day_level"], sentence: "Outside night hours, motion turns the hall lights on at {day_level}." },
+  { id: "garden_path", name: "Garden path", group: "lighting", enabled: true, last: "yesterday at 17:21",
+    helpers: ["garden_offset", "garden_off"], sentence: "Turn the garden path lights on {garden_offset} after sunset and off at {garden_off}." },
+  { id: "bath_fan", name: "Bathroom fan", group: "climate", enabled: true, last: "today at 08:12",
+    helpers: ["humidity", "runon"], sentence: "Start the bathroom fan above {humidity} humidity and keep it running {runon} after it drops." },
+  { id: "washer_done", name: "Washing machine done", group: "notify", enabled: true, last: "2 days ago", helpers: [] },
+  { id: "door_open", name: "Front door left open", group: "notify", enabled: true, last: "never", helpers: [] },
+];
+const profiles = [
+  { name: "Summer", note: "Late evenings, early mornings", values: { sunset_delay: 15, sunrise_delay: 0, garden_offset: 30, night_start: "23:30" } },
+  { name: "Autumn", note: "Shutters later, lights sooner", values: { sunset_delay: 30, sunrise_delay: 10, garden_offset: 15, night_start: "23:00" } },
+  { name: "Winter", note: "Dark early, slow mornings", values: { sunset_delay: 45, sunrise_delay: 20, garden_offset: 5, night_start: "22:30" } },
+];
+
+const ui = { q: "", group: null, onlyHelpers: true, sel: null };
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const G = id => groups.find(g => g.id === id);
+const A = id => automations.find(a => a.id === id);
+
+function fmt(h) {
+  if (h.type === "boolean") return h.value ? "on" : "off";
+  if (h.type !== "number") return h.value;
+  if (h.unit === "min") { if (h.value === 0) return "no delay"; if (h.value >= 60) { const m = h.value % 60; return `${Math.floor(h.value / 60)} h${m ? " " + m + " min" : ""}`; } }
+  return h.unit === "%" ? `${h.value}%` : `${h.value} ${h.unit}`;
+}
+const word = h => h.type === "boolean" ? h.words[h.value ? 1 : 0] : fmt(h);
+const summary = a => a.sentence ? esc(a.sentence).replace(/\{(\w+)\}/g, (_, k) => `<b>${esc(word(H[k]))}</b>`) : "No adjustable settings";
+
+/* ── List ── */
+function match(a) {
+  if (ui.group && a.group !== ui.group) return false;
+  if (ui.onlyHelpers && !a.helpers.length) return false;
+  if (!ui.q) return true;
+  return [a.name, a.sentence || "", ...a.helpers.flatMap(k => [H[k].name, H[k].eid])].join(" ").toLowerCase().includes(ui.q.toLowerCase());
+}
+function renderChips() {
+  $("#chips").innerHTML = `<button class="fchip" data-only aria-pressed="${ui.onlyHelpers}"><span class="mdi mdi-tune-variant"></span>With settings</button>`
+    + groups.map(g => `<button class="fchip" data-group="${g.id}" aria-pressed="${ui.group === g.id}"><span class="mdi ${g.icon}"></span>${g.name}</button>`).join("");
+}
+function renderList() {
+  const out = groups.map(g => {
+    const list = automations.filter(a => a.group === g.id && match(a));
+    if (!list.length) return "";
+    return `<div class="group-h"><span>${g.name}</span><span class="n">${list.length}</span></div>` + list.map(a => `
+      <div class="row ${a.enabled ? "" : "off"}" data-sel="${a.id}" role="button" tabindex="0" aria-current="${ui.sel === a.id}" style="--c:${g.c}">
+        <div class="ic"><span class="mdi ${g.icon}"></span></div>
+        <div class="txt"><div class="name">${esc(a.name)}</div><div class="sum" data-sum="${a.id}">${a.enabled ? summary(a) : "Disabled · " + summary(a)}</div></div>
+        <button class="switch" role="switch" data-toggle="${a.id}" aria-checked="${a.enabled}" aria-label="${a.enabled ? "Disable" : "Enable"} ${esc(a.name)}"></button>
+        <div class="menu-wrap"><button class="icon-btn" data-runmenu="${a.id}" aria-label="Run ${esc(a.name)}" aria-haspopup="true"><span class="mdi mdi-play-circle-outline"></span></button>${runMenu(a)}</div>
+      </div>`).join("");
+  }).join("");
+  $("#list").innerHTML = out || `<div class="empty"><p>No automation matches “${esc(ui.q)}”${ui.group ? " in " + G(ui.group).name : ""}.</p><button class="text-btn" data-clear>Clear search and filters</button></div>`;
+}
+function runMenu(a) {
+  return `<div class="menu" data-menu="${a.id}" role="menu">
+    <button role="menuitem" data-trigger="${a.id}"><span class="mdi mdi-play"></span><span>Trigger<small>Runs only if the conditions pass</small></span></button>
+    <button role="menuitem" data-run="${a.id}"><span class="mdi mdi-fast-forward"></span><span>Run actions<small>Skips conditions and runs the actions now</small></span></button></div>`;
+}
+
+/* ── Detail ── */
+function settingHTML(k, a) {
+  const h = H[k];
+  let body = "", right = `<div class="s-value" data-val="${k}">${esc(fmt(h))}</div>`;
+  if (h.type === "number") {
+    body = `<div class="slider-line">
+        <button class="step" data-inc="${k}" data-d="-1" aria-label="Decrease ${esc(h.name)}"><span class="mdi mdi-minus"></span></button>
+        <input type="range" data-range="${k}" min="${h.min}" max="${h.max}" step="${h.step}" value="${h.value}" aria-label="${esc(h.name)}">
+        <button class="step" data-inc="${k}" data-d="1" aria-label="Increase ${esc(h.name)}"><span class="mdi mdi-plus"></span></button>
+        ${h.bulb ? `<span class="bulb" data-bulb="${k}" style="--b:${h.value}" aria-hidden="true"></span>` : ""}
+      </div>
+      ${h.presets ? `<div class="presets" data-presets="${k}">${h.presets.map(p => `<button class="preset" data-preset="${k}" data-v="${p}" aria-pressed="${h.value === p}">${esc(fmt({ ...h, value: p }))}</button>`).join("")}</div>` : ""}`;
+  } else if (h.type === "boolean") {
+    right = `<button class="switch" role="switch" data-bool="${k}" aria-checked="${h.value}" aria-label="${esc(h.name)}"></button>`;
+  } else if (h.type === "select") {
+    right = "";
+    body = `<div class="seg" role="radiogroup" aria-label="${esc(h.name)}">${h.options.map(o => `<button role="radio" data-opt="${k}" data-v="${esc(o)}" aria-pressed="${h.value === o}" aria-checked="${h.value === o}">${esc(o)}</button>`).join("")}</div>`;
+  } else {
+    right = "";
+    body = `<div class="time-line">
+      <button class="step" data-shift="${k}" data-m="-15" aria-label="15 minutes earlier"><span class="mdi mdi-minus"></span></button>
+      <input type="time" data-time="${k}" value="${h.value}" aria-label="${esc(h.name)}">
+      <button class="step" data-shift="${k}" data-m="15" aria-label="15 minutes later"><span class="mdi mdi-plus"></span></button>
+      <span class="e" style="color:var(--text2);font-size:12px">±15 min</span></div>`;
+  }
+  return `<div class="setting" data-setting="${k}">
+    <div class="s-top"><span class="mdi ${h.icon}"></span>
+      <div class="s-label"><div class="t">${esc(h.name)}</div><div class="e">${h.desc ? esc(h.desc) : h.eid}</div></div>${right}</div>
+    ${body ? `<div class="s-body">${body}</div>` : ""}
+    ${a.via && a.via[k] ? `<div class="via"><span class="mdi mdi-link-variant"></span>Used through ${a.via[k]}</div>` : ""}
+  </div>`;
+}
+function renderDetail() {
+  const el = $("#detail");
+  if (!ui.sel) { el.innerHTML = `<div class="placeholder"><div><span class="mdi mdi-tune-vertical"></span>Pick an automation to adjust its settings.</div></div>`; return; }
+  const a = A(ui.sel), g = G(a.group);
+  el.innerHTML = `<div class="detail" style="--c:${g.c}">
+    <div class="d-head">
+      <button class="icon-btn back" data-back aria-label="Back to the list"><span class="mdi mdi-arrow-left"></span></button>
+      <div class="ic"><span class="mdi ${g.icon}"></span></div>
+      <div class="d-title"><h2>${esc(a.name)}</h2><div class="meta">${g.name} · Last triggered <span data-last>${esc(a.last)}</span></div></div>
+      <label class="status"><span data-state>${a.enabled ? "Enabled" : "Disabled"}</span>
+        <button class="switch" role="switch" data-toggle="${a.id}" aria-checked="${a.enabled}" aria-label="Enabled"></button></label>
+    </div>
+    <div class="actions">
+      <button class="filled-btn" data-trigger="${a.id}" title="Runs only if the conditions pass" ${a.enabled ? "" : "disabled"}><span class="mdi mdi-play"></span>Trigger</button>
+      <button class="outlined-btn" data-run="${a.id}" title="Skips conditions and runs the actions now"><span class="mdi mdi-fast-forward"></span>Run actions</button>
+    </div>
+    ${a.enabled ? "" : `<div class="disabled-note"><span class="mdi mdi-pause-circle-outline"></span>This automation is disabled. Your settings are kept and apply again when you enable it.</div>`}
+    ${a.sentence ? `<section class="card"><h3>What it does</h3>
+      <p class="summary">${esc(a.sentence).replace(/\{(\w+)\}/g, (_, k) => `<button class="vchip" data-jump="${k}" data-chip="${k}">${esc(word(H[k]))}</button>`)}</p></section>` : ""}
+    <section class="card"><h3>Settings</h3>
+      ${a.helpers.length ? `<p class="sub">Changes apply right away.</p>${a.helpers.map(k => settingHTML(k, a)).join("")}`
+        : `<p class="sub" style="padding-bottom:16px">This automation doesn't use any input helpers. Add one, like an input_number for a delay, and it shows up here.</p>`}
+    </section>
+    <section class="card"><div class="links">
+      <button class="text-btn"><span class="mdi mdi-chart-timeline-variant"></span>Traces</button>
+      <button class="text-btn"><span class="mdi mdi-pencil-outline"></span>Edit automation</button>
+      <button class="text-btn"><span class="mdi mdi-link-plus"></span>Link another helper</button>
+    </div></section>
+  </div>`;
+}
+function select(id) {
+  ui.sel = id; renderList(); renderDetail();
+  $("#app").classList.add("show-detail");
+  $("#detail").scrollTop = 0; window.scrollTo(0, 0);
+}
+
+/* ── Values, with undo ── */
+let pending = {}, settle, snackTimer, undoFn = null;
+function setValue(k, v, opts = {}) {
+  const h = H[k];
+  if (h.type === "number") v = Math.min(h.max, Math.max(h.min, Math.round(v / h.step) * h.step));
+  if (h.value === v) return;
+  if (!opts.silent && !(k in pending)) pending[k] = h.value;
+  h.value = v;
+  sync(k, opts.fromRange);
+  if (!opts.silent) { clearTimeout(settle); settle = setTimeout(commit, 600); }
+}
+function commit() {
+  const changed = Object.entries(pending); pending = {};
+  if (!changed.length) return;
+  const [k] = changed[0];
+  snack(changed.length === 1 ? `${H[k].name} set to ${fmt(H[k])}` : `${changed.length} settings changed`,
+    () => changed.forEach(([k, prev]) => setValue(k, prev, { silent: true })));
+}
+function snack(text, undo) {
+  $("#snackText").textContent = text; undoFn = undo;
+  $("#undoBtn").style.display = undo ? "" : "none";
+  $("#snack").classList.add("show");
+  clearTimeout(snackTimer); snackTimer = setTimeout(() => $("#snack").classList.remove("show"), 5000);
+}
+function sync(k, fromRange) {
+  const h = H[k];
+  document.querySelectorAll(`[data-val="${k}"]`).forEach(e => e.textContent = fmt(h));
+  document.querySelectorAll(`[data-chip="${k}"]`).forEach(e => e.textContent = word(h));
+  if (!fromRange) document.querySelectorAll(`[data-range="${k}"]`).forEach(e => e.value = h.value);
+  document.querySelectorAll(`[data-bulb="${k}"]`).forEach(e => e.style.setProperty("--b", h.value));
+  document.querySelectorAll(`[data-preset="${k}"]`).forEach(e => e.setAttribute("aria-pressed", +e.dataset.v === h.value));
+  document.querySelectorAll(`[data-bool="${k}"]`).forEach(e => e.setAttribute("aria-checked", h.value));
+  document.querySelectorAll(`[data-opt="${k}"]`).forEach(e => { const on = e.dataset.v === h.value; e.setAttribute("aria-pressed", on); e.setAttribute("aria-checked", on); });
+  document.querySelectorAll(`[data-time="${k}"]`).forEach(e => { if (e !== document.activeElement) e.value = h.value; });
+  automations.filter(a => a.helpers.includes(k)).forEach(a => document.querySelectorAll(`[data-sum="${a.id}"]`).forEach(e => e.innerHTML = a.enabled ? summary(a) : "Disabled · " + summary(a)));
+}
+function shift(k, m) {
+  const [hh, mm] = H[k].value.split(":").map(Number), t = ((hh * 60 + mm + m) % 1440 + 1440) % 1440;
+  setValue(k, `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`);
+}
+function setEnabled(id, on) {
+  const a = A(id); a.enabled = on;
+  renderList(); if (ui.sel === id) renderDetail();
+  snack(`${a.name} ${on ? "enabled" : "disabled"}`, () => setEnabled(id, !on));
+}
+function closeMenus() { document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open")); $("#profilesBtn").setAttribute("aria-expanded", "false"); }
+
+/* ── Events ── */
+document.addEventListener("click", e => {
+  const t = e.target.closest("button, .row");
+  const inMenu = e.target.closest(".menu");
+  if (!t) { closeMenus(); return; }
+  const d = t.dataset;
+  if (d.runmenu) { e.stopPropagation(); const m = document.querySelector(`[data-menu="${d.runmenu}"]`); const open = !m.classList.contains("open"); closeMenus(); m.classList.toggle("open", open); if (open) m.querySelector("button").focus(); return; }
+  if (d.trigger || d.run) {
+    const a = A(d.trigger || d.run); closeMenus();
+    if (d.trigger && !a.enabled) { snack(`${a.name} is disabled. Enable it, or use Run actions.`); return; }
+    a.last = "just now"; document.querySelectorAll("[data-last]").forEach(x => x.textContent = a.last);
+    snack(d.trigger ? `${a.name} triggered` : `${a.name}: actions ran`); return;
+  }
+  if (d.toggle) { setEnabled(d.toggle, !A(d.toggle).enabled); return; }
+  if (inMenu && d.profile !== undefined) { applyProfile(+d.profile); closeMenus(); return; }
+  if (inMenu && "save" in d) { saveProfile(); closeMenus(); return; }
+  if (t.id === "profilesBtn") { const m = $("#profilesMenu"); const open = !m.classList.contains("open"); closeMenus(); m.classList.toggle("open", open); t.setAttribute("aria-expanded", open); return; }
+  if (t.id === "themeBtn") { const r = document.documentElement; const dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; r.dataset.theme = dark ? "light" : "dark"; return; }
+  if (t.id === "undoBtn") { if (undoFn) undoFn(); undoFn = null; $("#snack").classList.remove("show"); return; }
+  if (d.sel) { select(d.sel); return; }
+  if ("back" in d) { $("#app").classList.remove("show-detail"); const r = document.querySelector(`[data-sel="${ui.sel}"]`); if (r) r.focus(); return; }
+  if (d.inc) { setValue(d.inc, H[d.inc].value + H[d.inc].step * +d.d); return; }
+  if (d.preset) { setValue(d.preset, +d.v); return; }
+  if (d.bool) { setValue(d.bool, !H[d.bool].value); return; }
+  if (d.opt) { setValue(d.opt, d.v); return; }
+  if (d.shift) { shift(d.shift, +d.m); return; }
+  if (d.jump) { const s = document.querySelector(`[data-setting="${d.jump}"]`); s.scrollIntoView({ behavior: "smooth", block: "center" }); s.classList.add("flash"); setTimeout(() => s.classList.remove("flash"), 50);
+    const f = s.querySelector("input, .switch, .seg button[aria-pressed=true]"); if (f) f.focus({ preventScroll: true }); return; }
+  if (d.group) { ui.group = ui.group === d.group ? null : d.group; renderChips(); renderList(); return; }
+  if ("only" in d) { ui.onlyHelpers = !ui.onlyHelpers; renderChips(); renderList(); return; }
+  if ("clear" in d) { ui.q = ""; ui.group = null; ui.onlyHelpers = false; $("#q").value = ""; renderChips(); renderList(); return; }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeMenus();
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches(".row")) { e.preventDefault(); select(e.target.dataset.sel); }
+});
+document.addEventListener("input", e => {
+  if (e.target.dataset.range) setValue(e.target.dataset.range, +e.target.value, { fromRange: true });
+  if (e.target.id === "q") { ui.q = e.target.value.trim(); renderList(); }
+});
+document.addEventListener("change", e => { if (e.target.dataset.time && e.target.value) setValue(e.target.dataset.time, e.target.value); });
+
+function renderProfiles() {
+  $("#profilesMenu").innerHTML = profiles.map((p, i) => `<button role="menuitem" data-profile="${i}"><span class="mdi mdi-palette-swatch-outline"></span><span>Apply ${esc(p.name)}<small>${esc(p.note)} · ${Object.keys(p.values).length} settings</small></span></button>`).join("")
+    + `<hr><button role="menuitem" data-save><span class="mdi mdi-content-save-outline"></span><span>Save current settings as profile<small>Stores every setting shown in Mixboard</small></span></button>`;
+}
+function applyProfile(i) {
+  const p = profiles[i], prev = {};
+  Object.entries(p.values).forEach(([k, v]) => { prev[k] = H[k].value; setValue(k, v, { silent: true }); });
+  snack(`Applied ${p.name} to ${Object.keys(p.values).length} settings`, () => Object.entries(prev).forEach(([k, v]) => setValue(k, v, { silent: true })));
+}
+function saveProfile() {
+  profiles.push({ name: `Profile ${profiles.length + 1}`, note: "Saved just now", values: Object.fromEntries(Object.entries(H).map(([k, h]) => [k, h.value])) });
+  renderProfiles(); snack(`Saved ${profiles.at(-1).name}`);
+}
+
+renderChips(); renderProfiles();
+ui.sel = matchMedia("(max-width: 760px)").matches ? null : "sunset_shutters";
+renderList(); renderDetail();
+</script>
+</body>
+</html>

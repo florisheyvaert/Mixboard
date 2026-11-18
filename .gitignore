@@ -1,0 +1,13 @@
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.env
+.env.local
+# Built panel JS: produced by `npm run build` and by the release workflow
+custom_components/mixboard/frontend/*
+!custom_components/mixboard/frontend/.gitkeep
+mixboard.zip
+*.tsbuildinfo

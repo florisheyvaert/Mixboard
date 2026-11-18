@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Mixboard (dev)</title>
+    <style>
+      /* Stand-ins for Home Assistant's default theme variables. */
+      :root {
+        --primary-background-color: #fafafa;
+        --primary-text-color: #212121;
+        --secondary-text-color: #727272;
+        --divider-color: rgba(0, 0, 0, 0.12);
+        --primary-color: #03a9f4;
+        --card-background-color: #ffffff;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --primary-background-color: #111111;
+          --primary-text-color: #e1e1e1;
+          --secondary-text-color: #9b9b9b;
+          --divider-color: rgba(225, 225, 225, 0.12);
+          --card-background-color: #1c1c1c;
+          color-scheme: dark;
+        }
+      }
+      html, body, #app { margin: 0; height: 100%; background: var(--primary-background-color); }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/dev/dev.ts"></script>
+  </body>
+</html>

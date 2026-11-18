@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Mixboard",
+        "description": "Adds a Mixboard panel to your sidebar, where you tune the input helpers your automations use."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Mixboard is already set up."
+    }
+  }
+}
