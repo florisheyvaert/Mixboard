@@ -12,3 +12,4 @@ panel.narrow = innerWidth < 870;
 panel.hass = createMockHass((hass) => (panel.hass = hass));
 addEventListener("resize", () => (panel.narrow = innerWidth < 870));
 panel.addEventListener("hass-toggle-menu", () => console.info("[mock] sidebar toggled"));
+panel.addEventListener("hass-more-info", (e) => console.info("[mock] more-info", (e as CustomEvent).detail));

@@ -45,9 +45,14 @@ class MixboardPanel extends HTMLElement {
     this.dispatchEvent(new Event("hass-toggle-menu", { bubbles: true, composed: true }));
   };
 
+  /** Opens Home Assistant's own more-info dialog for an entity. */
+  private moreInfo = (entityId: string) => {
+    this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true }));
+  };
+
   private render() {
     if (!this.root || !this._hass) return;
-    this.root.render(<App hass={this._hass} narrow={this._narrow} onMenu={this.toggleMenu} />);
+    this.root.render(<App hass={this._hass} narrow={this._narrow} onMenu={this.toggleMenu} onMoreInfo={this.moreInfo} />);
   }
 }
 

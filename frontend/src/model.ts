@@ -1,4 +1,5 @@
-import type { AutomationInfo, Category, HomeAssistant, LinkedHelper } from "./types";
+import { formatValue, readHelper } from "./helpers";
+import type { AutomationGroup, AutomationInfo, Category, Favorite, HomeAssistant, Layout, LinkedHelper } from "./types";
 
 export interface Automation {
   entityId: string;
@@ -29,23 +30,114 @@ export function toAutomations(hass: HomeAssistant, infos: AutomationInfo[]): Aut
 }
 
 export const OTHER: Category = { id: "__other__", name: "Other", icon: null };
+export const EMPTY_LAYOUT: Layout = { groups: [], hidden: [], favorites: [] };
 
-/** Categories in name order, with uncategorized automations last under "Other". */
-export function categoriesOf(automations: Automation[]): Category[] {
-  const map = new Map<string, Category>();
-  let other = false;
-  for (const a of automations) {
-    if (a.category) map.set(a.category.id, a.category);
-    else other = true;
+/** One tile on the home page: a single automation or a user-made group of automations. */
+export type Item =
+  | { kind: "automation"; key: string; name: string; automations: [Automation]; category: Category }
+  | { kind: "group"; key: string; name: string; automations: Automation[]; category: Category; group: AutomationGroup };
+
+export const groupKey = (id: string) => `group:${id}`;
+
+export function buildItems(automations: Automation[], layout: Layout): Item[] {
+  const byId = new Map(automations.map((a) => [a.entityId, a]));
+  const grouped = new Set<string>();
+  const items: Item[] = [];
+  for (const g of layout.groups) {
+    const members = g.automations.map((id) => byId.get(id)).filter((a): a is Automation => !!a);
+    if (!members.length) continue;
+    members.forEach((m) => grouped.add(m.entityId));
+    items.push({ kind: "group", key: groupKey(g.id), name: g.name, automations: members, category: members[0].category ?? OTHER, group: g });
   }
-  const list = [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
-  return other ? [...list, OTHER] : list;
+  for (const a of automations) {
+    if (!grouped.has(a.entityId)) items.push({ kind: "automation", key: a.entityId, name: a.name, automations: [a], category: a.category ?? OTHER });
+  }
+  return items.sort((x, y) => x.name.localeCompare(y.name));
 }
 
-export const categoryId = (a: Automation) => a.category?.id ?? OTHER.id;
+export const favoriteKey = (f: Favorite) => (f.type === "group" ? groupKey(f.id) : f.id);
+
+export function itemFavorite(item: Item): Favorite {
+  return item.kind === "group" ? { type: "group", id: item.group.id } : { type: "automation", id: item.key };
+}
+
+/** Values of every helper in an item, deduplicated, as plain text. */
+export function itemHelpers(item: Item): LinkedHelper[] {
+  const seen = new Set<string>();
+  return item.automations.flatMap((a) => a.helpers).filter((h) => !seen.has(h.entity_id) && !!seen.add(h.entity_id));
+}
+
+export function itemSummary(hass: HomeAssistant, item: Item): string {
+  const values = itemHelpers(item)
+    .map((l) => readHelper(hass, l.entity_id))
+    .filter((h) => h.kind !== "missing" && h.kind !== "button")
+    .map(formatValue);
+  return values.length ? values.join(" · ") : "No settings";
+}
+
+/** "Gang - Nachtmodus" inside group "Gang" reads as "Nachtmodus". */
+export function shortName(name: string, groupName: string): string {
+  const m = name.match(new RegExp(`^${groupName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*[-–:|/]\\s*(.+)$`, "i"));
+  return m ? m[1] : name;
+}
+
+/** The shared start of names like "Gang - Dagmodus" and "Gang - Nachtmodus" → "Gang". */
+export function commonPrefix(names: string[]): string {
+  if (!names.length) return "";
+  const firstParts = names.map((n) => n.split(/\s*[-–:|/]\s*/)[0].trim());
+  return firstParts.every((p) => p.toLowerCase() === firstParts[0].toLowerCase()) && firstParts[0] !== names[0] ? firstParts[0] : "";
+}
+
+export function categoriesOf(items: Item[]): Category[] {
+  const map = new Map<string, Category>();
+  for (const i of items) map.set(i.category.id, i.category);
+  return [...map.values()].sort((a, b) => (a.id === OTHER.id ? 1 : b.id === OTHER.id ? -1 : a.name.localeCompare(b.name)));
+}
 
 /** Navigate inside the Home Assistant frontend. */
 export function navigate(path: string) {
   history.pushState(null, "", path);
   window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
 }
+
+/* ── Plain Home Assistant entities as favorites ─────────────── */
+const TOGGLE = new Set(["light", "switch", "fan", "input_boolean", "automation", "cover", "humidifier", "siren", "media_player", "climate"]);
+const RUN: Record<string, [string, string]> = {
+  script: ["turn_on", "Run"],
+  scene: ["turn_on", "Activate"],
+  button: ["press", "Press"],
+  input_button: ["press", "Press"],
+};
+
+export type EntityAction = { type: "toggle"; on: boolean } | { type: "run"; service: string; label: string } | { type: "none" };
+
+export function entityAction(hass: HomeAssistant, entityId: string): EntityAction {
+  const domain = entityId.split(".")[0];
+  const st = hass.states[entityId];
+  if (!st || st.state === "unavailable") return { type: "none" };
+  if (domain === "climate") return { type: "toggle", on: st.state !== "off" };
+  if (TOGGLE.has(domain)) return { type: "toggle", on: ["on", "open", "opening", "playing", "heat", "cool"].includes(st.state) };
+  if (RUN[domain]) return { type: "run", service: RUN[domain][0], label: RUN[domain][1] };
+  return { type: "none" };
+}
+
+export function entityState(hass: HomeAssistant, entityId: string): string {
+  const st = hass.states[entityId];
+  if (!st) return "Not found";
+  const a = st.attributes;
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ");
+  if (st.state === "unavailable") return "Unavailable";
+  if (entityId.startsWith("light.") && st.state === "on" && typeof a.brightness === "number") {
+    return `On · ${Math.round((a.brightness / 255) * 100)}%`;
+  }
+  if (entityId.startsWith("cover.") && typeof a.current_position === "number" && st.state === "open") {
+    return `Open · ${a.current_position}%`;
+  }
+  if (entityId.startsWith("climate.") && typeof a.temperature === "number") return `${cap(st.state)} · ${a.temperature}°`;
+  if (["script.", "scene.", "button.", "input_button."].some((p) => entityId.startsWith(p))) return "";
+  const unit = a.unit_of_measurement ? ` ${a.unit_of_measurement}` : "";
+  return /^-?\d/.test(st.state) ? `${st.state}${unit}` : cap(st.state);
+}
+
+export const entityName = (hass: HomeAssistant, entityId: string) =>
+  String(hass.states[entityId]?.attributes.friendly_name ?? entityId);

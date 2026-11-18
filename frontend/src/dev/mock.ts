@@ -3,7 +3,7 @@
  * shaped like the real thing. Modeled on real setups: shutters on sunset/sunrise with a delay helper,
  * hall lights with a night brightness, plus edge cases (disabled, via a script, no helpers, missing helper).
  */
-import type { AutomationInfo, HassEntity, HomeAssistant, Profile } from "../types";
+import type { AutomationInfo, HassEntity, HomeAssistant, Layout, Profile } from "../types";
 
 const ago = (days: number, h: number, m: number) => {
   const d = new Date();
@@ -20,8 +20,8 @@ const initialStates: HassEntity[] = [
   entity("automation.sunset_shutters", "on", { friendly_name: "Sunset shutters", id: "1001", last_triggered: ago(0, 18, 42) }),
   entity("automation.sunrise_shutters", "on", { friendly_name: "Sunrise shutters", id: "1002", last_triggered: ago(0, 7, 55) }),
   entity("automation.bedroom_blackout", "off", { friendly_name: "Bedroom blackout", id: "1003", last_triggered: ago(3, 21, 30) }),
-  entity("automation.hall_night_mode", "on", { friendly_name: "Hall night mode", id: "1004", last_triggered: ago(1, 23, 0) }),
-  entity("automation.hall_day_brightness", "on", { friendly_name: "Hall day brightness", id: "1005", last_triggered: ago(0, 6, 30) }),
+  entity("automation.hall_night_mode", "on", { friendly_name: "Gang - Nachtmodus", id: "1004", last_triggered: ago(1, 23, 0) }),
+  entity("automation.hall_day_brightness", "on", { friendly_name: "Gang - Dagmodus", id: "1005", last_triggered: ago(0, 6, 30) }),
   entity("automation.garden_path", "on", { friendly_name: "Garden path", id: "1006", last_triggered: ago(1, 17, 21) }),
   entity("automation.bathroom_fan", "on", { friendly_name: "Bathroom fan", id: "1007", last_triggered: ago(0, 8, 12) }),
   entity("automation.washing_machine_done", "on", { friendly_name: "Washing machine done", id: "1008", last_triggered: ago(2, 14, 3) }),
@@ -41,6 +41,13 @@ const initialStates: HassEntity[] = [
   entity("input_datetime.garden_off_time", "22:00:00", { friendly_name: "Turn off at", has_date: false, has_time: true }),
   entity("input_number.bath_humidity_threshold", "65.0", { friendly_name: "Start above humidity", min: 40, max: 90, step: 1, unit_of_measurement: "%" }),
   entity("input_number.bath_fan_runon", "10.0", { friendly_name: "Keep running for", min: 0, max: 30, step: 1, unit_of_measurement: "min" }),
+  entity("input_datetime.hall_day_start", "06:30:00", { friendly_name: "Day starts at", has_date: false, has_time: true }),
+  entity("light.gang", "on", { friendly_name: "Gang", brightness: 51 }),
+  entity("light.living_room", "off", { friendly_name: "Living room" }),
+  entity("switch.coffee_machine", "off", { friendly_name: "Coffee machine" }),
+  entity("cover.living_room", "open", { friendly_name: "Living room shutter", current_position: 100 }),
+  entity("script.good_night", "off", { friendly_name: "Good night" }),
+  entity("sensor.outdoor_temperature", "7.4", { friendly_name: "Outdoor temperature", unit_of_measurement: "°C" }),
   entity("input_text.washer_message", "The washing machine is done", { friendly_name: "Message", min: 0, max: 100 }),
   entity("input_button.washer_test", "unknown", { friendly_name: "Send a test message" }),
 ];
@@ -55,12 +62,14 @@ const automations: AutomationInfo[] = [
   { entity_id: "automation.sunrise_shutters", config_id: "1002", category: covers, helpers: [link("input_number.shutters_sunrise_delay"), link("input_datetime.shutters_earliest_open"), link("input_select.shutters_mode", "script.shutters_open")] },
   { entity_id: "automation.bedroom_blackout", config_id: "1003", category: covers, helpers: [link("input_datetime.bedroom_blackout_time")] },
   { entity_id: "automation.hall_night_mode", config_id: "1004", category: lighting, helpers: [link("input_number.hall_night_brightness"), link("input_datetime.hall_night_start"), link("input_datetime.hall_night_end")] },
-  { entity_id: "automation.hall_day_brightness", config_id: "1005", category: lighting, helpers: [link("input_number.hall_day_brightness")] },
+  { entity_id: "automation.hall_day_brightness", config_id: "1005", category: lighting, helpers: [link("input_number.hall_day_brightness"), link("input_datetime.hall_day_start")] },
   { entity_id: "automation.garden_path", config_id: "1006", category: lighting, helpers: [link("input_number.garden_sunset_offset"), link("input_datetime.garden_off_time"), link("input_number.garden_removed")] },
   { entity_id: "automation.bathroom_fan", config_id: "1007", category: climate, helpers: [link("input_number.bath_humidity_threshold"), link("input_number.bath_fan_runon")] },
   { entity_id: "automation.washing_machine_done", config_id: "1008", category: null, helpers: [link("input_text.washer_message"), link("input_button.washer_test")] },
   { entity_id: "automation.front_door_left_open", config_id: null, category: null, helpers: [] },
 ];
+
+let layout: Layout = { groups: [], hidden: [], favorites: [] };
 
 let profiles: Profile[] = [
   { id: "p1", name: "Summer", values: { "input_number.shutters_sunset_delay": "15.0", "input_number.shutters_sunrise_delay": "0.0", "input_number.garden_sunset_offset": "30.0", "input_datetime.hall_night_start": "23:30:00" } },
@@ -90,6 +99,11 @@ export function createMockHass(onChange: (hass: HomeAssistant) => void): HomeAss
     if (domain === "input_datetime") return setState(id, String(data.time ?? data.datetime ?? data.date));
     if (domain === "input_button") return setState(id, new Date().toISOString());
     if (domain === "automation" && (service === "turn_on" || service === "turn_off")) return setState(id, service === "turn_on" ? "on" : "off");
+    if (service === "toggle") {
+      const on = ["on", "open"].includes(states[id].state);
+      return setState(id, domain === "cover" ? (on ? "closed" : "open") : on ? "off" : "on");
+    }
+    if (["script", "scene"].includes(domain) && service === "turn_on") return;
     if (domain === "automation" && service === "trigger") return setState(id, states[id].state, { last_triggered: new Date().toISOString() });
     throw new Error(`Mock has no service ${domain}.${service}`);
   };
@@ -104,6 +118,8 @@ export function createMockHass(onChange: (hass: HomeAssistant) => void): HomeAss
         profiles = [...profiles, p];
         return { profile: p } as T;
       }
+      case "mixboard/layout": return { layout } as T;
+      case "mixboard/layout/save": layout = msg.layout as Layout; return { layout } as T;
       case "mixboard/profiles/delete": profiles = profiles.filter((p) => p.id !== msg.profile_id); return null as T;
     }
     throw new Error(`Mock has no websocket command ${msg.type}`);

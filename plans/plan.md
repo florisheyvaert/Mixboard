@@ -16,8 +16,15 @@
 
 ## Wat het doet
 
-**Overzicht:** zoeken, categorieën als tekst-tabs en per automation de naam met de huidige waarden in grijs.
-Automations zonder helpers zijn verborgen, met een knop "Show N without settings".
+**Startpagina (beta.2):** rustige tegels over de volle breedte (2 kolommen op mobiel), per categorie.
+- *Favorites* bovenaan: automations, groepen én gewone HA-entiteiten (lamp/schakelaar met toggle, script met Run,
+  sensor met waarde). Tik op een entiteit opent HA's eigen more-info venster.
+- *Customize* (potloodje): ster = favoriet, oog = verbergen, tegels selecteren → *Group*. Groepsnaam wordt voorgesteld
+  uit de gedeelde naam ("Gang - Dagmodus" + "Gang - Nachtmodus" → "Gang"). Rename/Ungroup voor één groep.
+  "Hide the N automations without settings" in één tik.
+- Verborgen tegels: "Show N hidden" onderaan. Layout staat in `.storage/mixboard` (`mixboard/layout`).
+- Groepsdetail: per automation een blok (naam zonder groepsprefix) met settings, Enabled, Run now, Traces and editor.
+  Een helper die meerdere automations delen staat één keer.
 
 **Detail (aparte pagina):**
 - *Settings*: één rij per helper, met de waarde in de accentkleur. Tik op een rij en er opent een paneel met één
@@ -54,7 +61,8 @@ krijgt het script mee waarlangs hij gevonden is. De waarden zelf komen live uit 
 | 0. Setup + design | Mockups, gekozen design, repo-skelet, CI (validate + release), `CLAUDE.md` | ✅ lokaal klaar |
 | 1. Backend | Scanner + tests, websocket-commando's, profielopslag | ✅ lokaal klaar, nog niet getest in een echte HA |
 | 2–3. Overzicht + detail | React-versie van v4 met mock-HA, getest op desktop en mobiel | ✅ lokaal klaar |
-| 4. Eerste beta | Pushen, tag `v0.1.0-beta.1`, installeren via HACS, testen op de echte automations | ⏳ volgende stap |
+| 4. Eerste beta | `v0.1.0-beta.1` via HACS, werkt in de echte HA | ✅ |
+| 4b. Tegels, groepen, favorieten, verbergen | Op vraag na beta.1 | ✅ lokaal, `v0.1.0-beta.2` na akkoord |
 | 5. Afwerking | Helpers handmatig koppelen of verbergen, `timer`/`counter` bedienbaar, wijzigingsgeschiedenis per helper | later |
 
 ## Nog te doen in de echte HA (na de eerste beta)

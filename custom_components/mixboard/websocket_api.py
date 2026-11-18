@@ -20,6 +20,26 @@ def async_register_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_profiles)
     websocket_api.async_register_command(hass, ws_profile_save)
     websocket_api.async_register_command(hass, ws_profile_delete)
+    websocket_api.async_register_command(hass, ws_layout)
+    websocket_api.async_register_command(hass, ws_layout_save)
+
+
+LAYOUT_SCHEMA = vol.Schema(
+    {
+        vol.Required("groups"): [
+            {
+                vol.Required("id"): vol.All(str, vol.Length(min=1, max=64)),
+                vol.Required("name"): vol.All(str, vol.Length(min=1, max=60)),
+                vol.Required("automations"): [str],
+            }
+        ],
+        # Item keys: an automation entity_id or "group:<id>".
+        vol.Required("hidden"): [str],
+        vol.Required("favorites"): [
+            {vol.Required("type"): vol.In(["entity", "automation", "group"]), vol.Required("id"): str}
+        ],
+    }
+)
 
 
 def _raw_config(entity: Any) -> dict[str, Any] | None:
@@ -101,3 +121,19 @@ async def ws_profile_delete(hass: HomeAssistant, connection: websocket_api.Activ
         connection.send_result(msg["id"])
     else:
         connection.send_error(msg["id"], websocket_api.ERR_NOT_FOUND, "Profile not found")
+
+
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/layout"})
+@callback
+def ws_layout(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict) -> None:
+    connection.send_result(msg["id"], {"layout": hass.data[DOMAIN]["store"].layout})
+
+
+@websocket_api.websocket_command(
+    {vol.Required("type"): f"{DOMAIN}/layout/save", vol.Required("layout"): LAYOUT_SCHEMA}
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_layout_save(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict) -> None:
+    layout = await hass.data[DOMAIN]["store"].async_save_layout(msg["layout"])
+    connection.send_result(msg["id"], {"layout": layout})

@@ -247,3 +247,62 @@ export function ProfilesSheet({
     </>
   );
 }
+
+/* ── Traces and editor ───────────────────────────────────── */
+export function MoreSheet({ automation: a, onDone, navigate }: { automation: Automation; onDone: () => void; navigate: (path: string) => void }) {
+  return (
+    <>
+      <div className="options">
+        <button className="opt" onClick={() => { onDone(); navigate(`/config/automation/trace/${a.configId}`); }}>
+          <span>Traces<small>See what happened the last times it ran</small></span>
+        </button>
+        <button className="opt" onClick={() => { onDone(); navigate(`/config/automation/edit/${a.configId}`); }}>
+          <span>Edit in Home Assistant<small>Open the automation editor</small></span>
+        </button>
+      </div>
+      <Foot><button className="done quiet" onClick={onDone}>Cancel</button></Foot>
+    </>
+  );
+}
+
+/* ── Name a group ────────────────────────────────────────── */
+export function GroupNameSheet({ initial, action, onSave, onDone }: { initial: string; action: string; onSave: (name: string) => void; onDone: () => void }) {
+  const [name, setName] = useState(initial);
+  return (
+    <form className="textedit" onSubmit={(e) => { e.preventDefault(); if (name.trim()) onSave(name.trim()); }}>
+      <input data-autofocus placeholder="Group name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} aria-label="Group name" />
+      <button className="plain save" disabled={!name.trim()}>{action}</button>
+      <button type="button" className="plain reset" onClick={onDone}>Cancel</button>
+    </form>
+  );
+}
+
+/* ── Pick any entity as a favorite ───────────────────────── */
+export function EntityPicker({ hass, exclude, onPick }: { hass: HomeAssistant; exclude: Set<string>; onPick: (entityId: string) => void }) {
+  const [q, setQ] = useState("");
+  const terms = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const order = ["light", "switch", "fan", "cover", "climate", "script", "scene", "media_player", "lock"];
+  const rank = (id: string) => { const i = order.indexOf(id.split(".")[0]); return i < 0 ? order.length : i; };
+  const results = Object.values(hass.states)
+    .filter((s) => !exclude.has(s.entity_id))
+    .map((s) => ({ id: s.entity_id, name: String(s.attributes.friendly_name ?? s.entity_id) }))
+    .filter((e) => terms.every((t) => `${e.name} ${e.id}`.toLowerCase().includes(t)))
+    .sort((a, b) => rank(a.id) - rank(b.id) || a.name.localeCompare(b.name))
+    .slice(0, 40);
+  return (
+    <>
+      <label className="search in-sheet">
+        <Icon name="search" />
+        <input data-autofocus type="search" placeholder="Search entities" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search entities" />
+      </label>
+      <div className="options picker">
+        {results.map((e) => (
+          <button key={e.id} className="opt" onClick={() => onPick(e.id)}>
+            <span>{e.name}<small>{e.id}</small></span>
+          </button>
+        ))}
+        {results.length === 0 && <p className="hint">No entity matches “{q.trim()}”.</p>}
+      </div>
+    </>
+  );
+}

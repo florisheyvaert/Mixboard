@@ -44,3 +44,22 @@ export interface Profile {
   name: string;
   values: Record<string, string>;
 }
+
+/** Home page layout, stored by the backend (`mixboard/layout`). */
+export interface AutomationGroup {
+  id: string;
+  name: string;
+  automations: string[];
+}
+
+export interface Favorite {
+  type: "entity" | "automation" | "group";
+  id: string;
+}
+
+export interface Layout {
+  groups: AutomationGroup[];
+  /** Item keys: an automation entity_id or `group:<id>`. */
+  hidden: string[];
+  favorites: Favorite[];
+}

@@ -7,8 +7,8 @@ Plan and decisions: `plans/plan.md`. Approved design: `mockups/mixboard-v4.html`
 
 - `custom_components/mixboard/` — Python integration
   - `scanner.py` — finds helpers in an automation config. Pure Python, no HA imports, so `tests/` can load it directly.
-  - `websocket_api.py` — `mixboard/automations`, `mixboard/profiles`, `mixboard/profiles/save`, `mixboard/profiles/delete`
-  - `store.py` — profiles in `.storage/mixboard`
+  - `websocket_api.py` — `mixboard/automations`, `mixboard/profiles(/save|/delete)`, `mixboard/layout(/save)`
+  - `store.py` — profiles and the home layout (groups, hidden, favorites) in `.storage/mixboard`
   - `__init__.py` — registers the static path, panel (`mixboard-panel`, admin only) and websocket commands
   - `frontend/` — build output only (git-ignored except `.gitkeep`)
 - `frontend/` — React 18 + TypeScript + Vite, plain CSS in the panel's shadow DOM (`src/styles.css`)
@@ -28,7 +28,8 @@ Plan and decisions: `plans/plan.md`. Approved design: `mockups/mixboard-v4.html`
 - One accent color (`--primary-color`), used only for values you can change. Everything else neutral.
 - Screens show text and values. Controls appear only after a tap, in a sheet (bottom on phones, centered on desktop).
 - One primary action per sheet (the dark Done button). No pills, badges, colored stripes, cards or shadows on lists.
-- Overview first, then a separate detail page. No duplicate information.
+- Home: quiet tiles (tinted surface, no borders or shadows), full width, 2 columns on phones. Detail pages stay 600px.
+- Customizing (favorite, hide, group) lives in a separate Customize mode so the normal view stays calm.
 - All CSS tokens map to HA theme variables so light/dark and custom themes work. All UI text in English.
 
 ## Deploying
