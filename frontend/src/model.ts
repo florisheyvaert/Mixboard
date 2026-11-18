@@ -1,4 +1,3 @@
-import { formatValue, readHelper } from "./helpers";
 import type { AutomationGroup, AutomationInfo, Category, Favorite, HomeAssistant, Layout, LinkedHelper } from "./types";
 
 export interface Automation {
@@ -65,14 +64,6 @@ export function itemFavorite(item: Item): Favorite {
 export function itemHelpers(item: Item): LinkedHelper[] {
   const seen = new Set<string>();
   return item.automations.flatMap((a) => a.helpers).filter((h) => !seen.has(h.entity_id) && !!seen.add(h.entity_id));
-}
-
-export function itemSummary(hass: HomeAssistant, item: Item): string {
-  const values = itemHelpers(item)
-    .map((l) => readHelper(hass, l.entity_id))
-    .filter((h) => h.kind !== "missing" && h.kind !== "button")
-    .map(formatValue);
-  return values.length ? values.join(" · ") : "No settings";
 }
 
 /** "Gang - Nachtmodus" inside group "Gang" reads as "Nachtmodus". */

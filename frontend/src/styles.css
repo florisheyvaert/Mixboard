@@ -63,7 +63,7 @@ button, input { font: inherit; color: inherit; }
 .page.wide { max-width: 1280px; padding: 0 24px 120px; }
 .intro { color: var(--mb-muted); margin: 0 0 4px; max-width: 60ch; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin-top: 8px; }
-.tile { position: relative; display: flex; flex-direction: column; gap: 2px; min-height: 104px; padding: 14px 16px; border-radius: 16px; background: var(--mb-soft); border: 0; text-align: left; cursor: pointer; transition: background 0.15s; }
+.tile { position: relative; display: flex; flex-direction: column; gap: 2px; min-height: 72px; padding: 14px 16px; border-radius: 16px; background: var(--mb-soft); border: 0; text-align: left; cursor: pointer; transition: background 0.15s; }
 .tile:hover { background: color-mix(in srgb, var(--mb-text) 8%, transparent); }
 .tile .t-name { font-weight: 500; line-height: 1.3; }
 .tile .t-sub { color: var(--mb-muted); font-size: 15px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -91,7 +91,7 @@ button, input { font: inherit; color: inherit; }
 @media (max-width: 520px) {
   .page.wide { padding: 0 14px 120px; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .tile { min-height: 96px; padding: 12px 14px; }
+  .tile { min-height: 64px; padding: 12px 14px; }
   .tile.entity { padding-right: 14px; padding-bottom: 50px; }
   .tile .t-action { left: 14px; right: auto; bottom: 12px; }
   .tile[aria-pressed] { padding-right: 14px; padding-top: 40px; }
