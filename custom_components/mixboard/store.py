@@ -11,14 +11,14 @@ from homeassistant.helpers.storage import Store
 
 from .const import STORAGE_KEY, STORAGE_VERSION
 
-EMPTY_LAYOUT: dict[str, Any] = {"groups": [], "hidden": [], "favorites": []}
+EMPTY_LAYOUT: dict[str, Any] = {"groups": [], "hidden": [], "favorites": [], "names": {}}
 
 
 class MixboardStore:
     """Stored in .storage/mixboard.
 
     - profiles: named snapshots of helper values
-    - layout: groups of automations, hidden items and favorites shown on the home page
+    - layout: groups of automations, hidden items, favorites and display names for the home page
     """
 
     def __init__(self, hass: HomeAssistant) -> None:

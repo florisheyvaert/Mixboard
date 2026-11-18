@@ -14,6 +14,8 @@ Plan and decisions: `plans/plan.md`. Approved design: `mockups/mixboard-v4.html`
 - `frontend/` — React 18 + TypeScript + Vite, plain CSS in the panel's shadow DOM (`src/styles.css`)
   - `src/main.tsx` — the custom element HA mounts; `src/App.tsx` — state and navigation
   - `src/helpers.ts` — reading helper state, formatting, writing values through each helper's own service
+  - `src/actions.ts` — entity favorites: actions built from `hass.services` (toggle, any domain service + fields, more-info)
+  - `src/model.ts` — automations → home items (groups, display names), favorites keys
   - `src/dev/` — mock Home Assistant for `npm run dev`; never imported by `main.tsx`
 - `tests/test_scanner.py` — pytest
 
@@ -28,7 +30,9 @@ Plan and decisions: `plans/plan.md`. Approved design: `mockups/mixboard-v4.html`
 - One accent color (`--primary-color`), used only for values you can change. Everything else neutral.
 - Screens show text and values. Controls appear only after a tap, in a sheet (bottom on phones, centered on desktop).
 - One primary action per sheet (the dark Done button). No pills, badges, colored stripes, cards or shadows on lists.
-- Home: quiet tiles (tinted surface, no borders or shadows), full width, 2 columns on phones. Detail pages stay 600px.
+- Home and detail: quiet tiles (tinted surface, no borders or shadows), full width, 2 columns on phones.
+- Buttons: one shape (`.btn`, soft); `.btn.dark` only for the single main action (Done, Group, Save).
+- Profiles are out of the UI on purpose; the backend commands stay for later.
 - Customizing (favorite, hide, group) lives in a separate Customize mode so the normal view stays calm.
 - All CSS tokens map to HA theme variables so light/dark and custom themes work. All UI text in English.
 

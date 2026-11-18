@@ -135,9 +135,6 @@ export function setHelperValue(hass: HomeAssistant, entityId: string, value: str
   }
 }
 
-/** Values that can be stored in a profile (everything with a settable state). */
-export const PROFILE_DOMAINS = new Set(["input_number", "input_boolean", "input_select", "input_text", "input_datetime"]);
-
 export function lastRun(iso: unknown, now = new Date()): string {
   if (typeof iso !== "string" || !iso) return "Never ran";
   const d = new Date(iso);

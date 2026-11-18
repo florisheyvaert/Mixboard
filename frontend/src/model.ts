@@ -8,6 +8,8 @@ export interface Automation {
   configId: string | null;
   category: Category | null;
   helpers: LinkedHelper[];
+  /** Set when the automation has a Mixboard display name. */
+  haName?: string;
 }
 
 /** Join what the backend found with the live entity state. */
@@ -29,7 +31,7 @@ export function toAutomations(hass: HomeAssistant, infos: AutomationInfo[]): Aut
 }
 
 export const OTHER: Category = { id: "__other__", name: "Other", icon: null };
-export const EMPTY_LAYOUT: Layout = { groups: [], hidden: [], favorites: [] };
+export const EMPTY_LAYOUT: Layout = { groups: [], hidden: [], favorites: [], names: {} };
 
 /** One tile on the home page: a single automation or a user-made group of automations. */
 export type Item =
@@ -38,7 +40,13 @@ export type Item =
 
 export const groupKey = (id: string) => `group:${id}`;
 
-export function buildItems(automations: Automation[], layout: Layout): Item[] {
+/** Automations with their Mixboard display name applied (HA's own name stays in `haName`). */
+export function applyNames(automations: Automation[], names: Record<string, string> = {}): Automation[] {
+  return automations.map((a) => (names[a.entityId] ? { ...a, haName: a.name, name: names[a.entityId] } : a));
+}
+
+export function buildItems(all: Automation[], layout: Layout): Item[] {
+  const automations = applyNames(all, layout.names);
   const byId = new Map(automations.map((a) => [a.entityId, a]));
   const grouped = new Set<string>();
   const items: Item[] = [];
@@ -92,26 +100,6 @@ export function navigate(path: string) {
 }
 
 /* ── Plain Home Assistant entities as favorites ─────────────── */
-const TOGGLE = new Set(["light", "switch", "fan", "input_boolean", "automation", "cover", "humidifier", "siren", "media_player", "climate"]);
-const RUN: Record<string, [string, string]> = {
-  script: ["turn_on", "Run"],
-  scene: ["turn_on", "Activate"],
-  button: ["press", "Press"],
-  input_button: ["press", "Press"],
-};
-
-export type EntityAction = { type: "toggle"; on: boolean } | { type: "run"; service: string; label: string } | { type: "none" };
-
-export function entityAction(hass: HomeAssistant, entityId: string): EntityAction {
-  const domain = entityId.split(".")[0];
-  const st = hass.states[entityId];
-  if (!st || st.state === "unavailable") return { type: "none" };
-  if (domain === "climate") return { type: "toggle", on: st.state !== "off" };
-  if (TOGGLE.has(domain)) return { type: "toggle", on: ["on", "open", "opening", "playing", "heat", "cool"].includes(st.state) };
-  if (RUN[domain]) return { type: "run", service: RUN[domain][0], label: RUN[domain][1] };
-  return { type: "none" };
-}
-
 export function entityState(hass: HomeAssistant, entityId: string): string {
   const st = hass.states[entityId];
   if (!st) return "Not found";

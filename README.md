@@ -6,10 +6,13 @@ Many automations use input helpers for their settings, such as a delay after sun
 hall lights. Mixboard finds the helpers each automation uses and shows them in one place: pick an automation, tap a
 value, change it. No automation editor needed.
 
-- **Overview:** every automation with its current settings, searchable and grouped by category.
-- **Detail:** the settings of one automation. Tap a value to change it in a sheet with a slider, quick values or a
-  time picker. You can enable or disable the automation, trigger it, or run its actions.
-- **Profiles:** save your current settings as a profile ("Summer", "Autumn") and switch back in one tap.
+- **Home:** your automations as tiles per category, with favorites on top. Search finds automations and settings.
+- **Customize:** star favorites, hide automations you never touch, group automations that belong together
+  ("Gang - Dagmodus" + "Gang - Nachtmodus" → "Gang") and give them clearer names. Names only change in Mixboard.
+- **Favorites** can also be any Home Assistant entity with the action you choose: toggle a light, set its
+  brightness, press a button, set a cover position, or open its details. Press and hold a tile to open its details.
+- **Detail:** settings as tiles with big values. Tap one to change it with a slider, quick values or a time picker.
+  Each automation has On/Off, Run (with or without conditions) and More (rename, traces, editor).
 
 Mixboard finds a helper when the automation mentions it anywhere: in a trigger, a condition, a target, a template
 (`{{ states('input_number.delay') }}`), blueprint inputs, or a script the automation calls.

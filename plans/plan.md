@@ -36,7 +36,7 @@
 - In het paneel zet "Back to …" de oude waarde terug. Aan/uit-helpers en knoppen werken direct in de rij.
 - *Automation*: Enabled, Run now (Trigger met condities of Run actions zonder), Traces en Edit in Home Assistant.
 
-**Profielen:** de huidige helperwaarden opslaan onder een naam en later met één tik toepassen, met Undo.
+**Profielen:** uit de interface gehaald (2026-11-18). De backend (`mixboard/profiles*`) blijft bestaan voor later.
 
 ## Architectuur
 
@@ -63,6 +63,7 @@ krijgt het script mee waarlangs hij gevonden is. De waarden zelf komen live uit 
 | 2–3. Overzicht + detail | React-versie van v4 met mock-HA, getest op desktop en mobiel | ✅ lokaal klaar |
 | 4. Eerste beta | `v0.1.0-beta.1` via HACS, werkt in de echte HA | ✅ |
 | 4b. Tegels, groepen, favorieten, verbergen | Op vraag na beta.1 | ✅ lokaal, `v0.1.0-beta.2` na akkoord |
+| 4c. Feedback beta.2 | Duidelijke "Show hidden"-schakelaar, Profiles uit de UI (backend bewaard voor later), hernoemen (weergavenaam in Mixboard), detailpagina herontworpen (volle breedte, tegels met grote waarden, knoppen On/Run/More), favorieten met gekozen actie op basis van `hass.services` | ✅ lokaal |
 | 5. Afwerking | Helpers handmatig koppelen of verbergen, `timer`/`counter` bedienbaar, wijzigingsgeschiedenis per helper | later |
 
 ## Nog te doen in de echte HA (na de eerste beta)

@@ -11,6 +11,8 @@ const paths = {
   layers: <><path d="M12 4l8 4-8 4-8-4 8-4z" /><path d="M4 12l8 4 8-4M4 16l8 4 8-4" /></>,
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   close: <path d="M7 7l10 10M17 7L7 17" />,
+  play: <path d="M8 5.5v13l10.5-6.5z" />,
+  more: <><circle cx="5.5" cy="12" r="1.2" fill="currentColor" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /><circle cx="18.5" cy="12" r="1.2" fill="currentColor" /></>,
   edit: <><path d="M4 20h4L19 9l-4-4L4 16v4z" /><path d="M13.5 6.5l4 4" /></>,
   star: <path d={star} />,
   starFilled: <path d={star} fill="currentColor" />,

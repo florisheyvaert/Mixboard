@@ -36,8 +36,16 @@ LAYOUT_SCHEMA = vol.Schema(
         # Item keys: an automation entity_id or "group:<id>".
         vol.Required("hidden"): [str],
         vol.Required("favorites"): [
-            {vol.Required("type"): vol.In(["entity", "automation", "group"]), vol.Required("id"): str}
+            {
+                vol.Required("type"): vol.In(["entity", "automation", "group"]),
+                vol.Required("id"): str,
+                # For entities: what a tap does, e.g. {"kind": "toggle"} or
+                # {"kind": "service", "service": "turn_on", "data": {"brightness_pct": 20}}.
+                vol.Optional("action"): dict,
+            }
         ],
+        # Display names in Mixboard for automations, by entity_id. HA's own name is untouched.
+        vol.Optional("names", default={}): {str: vol.All(str, vol.Length(min=1, max=80))},
     }
 )
 

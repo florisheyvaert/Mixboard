@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  clampNumber, formatNumber, formatState, PROFILE_DOMAINS, quickValues, readHelper, setHelperValue, shiftTime,
+  clampNumber, formatNumber, formatState, quickValues, readHelper, setHelperValue, shiftTime,
   type Helper,
 } from "../helpers";
 import { Icon } from "../icons";
 import type { Automation } from "../model";
-import type { HomeAssistant, Profile } from "../types";
+import {
+  actionLabel, canToggle, fieldKind, fieldsOf, parseInput, selectOptions, servicesFor, type FieldKind,
+} from "../actions";
+import type { FavoriteAction, HomeAssistant } from "../types";
 import { errorText } from "../ui";
 
 /** Bottom sheet on phones, centered dialog on wide screens. Holds one thing at a time. */
@@ -171,109 +174,49 @@ export function RunSheet({ hass, automation: a, onDone, toast }: { hass: HomeAss
   );
 }
 
-/* ── Profiles ────────────────────────────────────────────── */
-export function ProfilesSheet({
-  hass, automations, profiles, onChange, onDone, toast,
-}: {
-  hass: HomeAssistant; automations: Automation[]; profiles: Profile[]; onChange: () => void; onDone: () => void;
-  toast: (t: string, undo?: () => void) => void;
+/* ── More: traces, editor, rename ────────────────────────── */
+export function MoreSheet({ automation: a, onDone, onRename, navigate }: {
+  automation: Automation; onDone: () => void; onRename: () => void; navigate: (path: string) => void;
 }) {
-  const [naming, setNaming] = useState(false);
-  const [name, setName] = useState("");
-
-  const apply = async (p: Profile) => {
-    const changes = Object.entries(p.values).filter(([eid, v]) => hass.states[eid] && hass.states[eid].state !== v);
-    const before = changes.map(([eid]) => [eid, hass.states[eid].state] as const);
-    onDone();
-    try {
-      await Promise.all(changes.map(([eid, v]) => setHelperValue(hass, eid, v)));
-      toast(
-        changes.length ? `${p.name} applied to ${changes.length} setting${changes.length === 1 ? "" : "s"}` : `${p.name} already matches`,
-        changes.length ? () => before.forEach(([eid, v]) => setHelperValue(hass, eid, v)) : undefined,
-      );
-    } catch (e) {
-      toast(errorText(e));
-    }
-  };
-
-  const save = async () => {
-    const values: Record<string, string> = {};
-    for (const a of automations)
-      for (const l of a.helpers)
-        if (PROFILE_DOMAINS.has(l.entity_id.split(".")[0]) && hass.states[l.entity_id]) values[l.entity_id] = hass.states[l.entity_id].state;
-    try {
-      await hass.callWS({ type: "mixboard/profiles/save", name: name.trim(), values });
-      onChange();
-      onDone();
-      toast(`Saved ${name.trim()}`);
-      setName("");
-      setNaming(false);
-    } catch (e) {
-      toast(errorText(e));
-    }
-  };
-
-  const remove = async (p: Profile) => {
-    try {
-      await hass.callWS({ type: "mixboard/profiles/delete", profile_id: p.id });
-      onChange();
-    } catch (e) {
-      toast(errorText(e));
-    }
-  };
-
   return (
     <>
       <div className="options">
-        {profiles.length === 0 && !naming && <p className="hint">Save your current settings as a profile, like “Summer”, to switch back to them later in one tap.</p>}
-        {profiles.map((p) => (
-          <div className="opt row" key={p.id}>
-            <button className="plain grow" onClick={() => apply(p)}>
-              {p.name}<small>Sets {Object.keys(p.values).length} settings</small>
+        <button className="opt" onClick={onRename}>
+          <span>Rename<small>{a.haName ? `Called “${a.haName}” in Home Assistant` : "Give it a clearer name in Mixboard"}</small></span>
+        </button>
+        {a.configId && (
+          <>
+            <button className="opt" onClick={() => { onDone(); navigate(`/config/automation/trace/${a.configId}`); }}>
+              <span>Traces<small>See what happened the last times it ran</small></span>
             </button>
-            <button className="iconbtn" aria-label={`Delete ${p.name}`} onClick={() => remove(p)}><Icon name="close" size={18} /></button>
-          </div>
-        ))}
-        {naming ? (
-          <form className="textedit" onSubmit={(e) => { e.preventDefault(); if (name.trim()) save(); }}>
-            <input data-autofocus placeholder="Profile name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} aria-label="Profile name" />
-            <button className="plain save" disabled={!name.trim()}>Save</button>
-          </form>
-        ) : (
-          <button className="opt" onClick={() => setNaming(true)}><span>Save current settings as a profile</span></button>
+            <button className="opt" onClick={() => { onDone(); navigate(`/config/automation/edit/${a.configId}`); }}>
+              <span>Edit in Home Assistant<small>Open the automation editor</small></span>
+            </button>
+          </>
         )}
-      </div>
-      <Foot><button className="done quiet" onClick={onDone}>Close</button></Foot>
-    </>
-  );
-}
-
-/* ── Traces and editor ───────────────────────────────────── */
-export function MoreSheet({ automation: a, onDone, navigate }: { automation: Automation; onDone: () => void; navigate: (path: string) => void }) {
-  return (
-    <>
-      <div className="options">
-        <button className="opt" onClick={() => { onDone(); navigate(`/config/automation/trace/${a.configId}`); }}>
-          <span>Traces<small>See what happened the last times it ran</small></span>
-        </button>
-        <button className="opt" onClick={() => { onDone(); navigate(`/config/automation/edit/${a.configId}`); }}>
-          <span>Edit in Home Assistant<small>Open the automation editor</small></span>
-        </button>
       </div>
       <Foot><button className="done quiet" onClick={onDone}>Cancel</button></Foot>
     </>
   );
 }
 
-/* ── Name a group ────────────────────────────────────────── */
-export function GroupNameSheet({ initial, action, onSave, onDone }: { initial: string; action: string; onSave: (name: string) => void; onDone: () => void }) {
+/* ── Name something (group, display name) ────────────────── */
+export function NameSheet({ initial, placeholder, action, onSave, onReset, resetLabel, onDone }: {
+  initial: string; placeholder: string; action: string; onSave: (name: string) => void; onDone: () => void;
+  onReset?: () => void; resetLabel?: string;
+}) {
   const [name, setName] = useState(initial);
   return (
-    <form className="textedit" onSubmit={(e) => { e.preventDefault(); if (name.trim()) onSave(name.trim()); }}>
-      <input data-autofocus placeholder="Group name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} aria-label="Group name" />
-      <button className="plain save" disabled={!name.trim()}>{action}</button>
-      <button type="button" className="plain reset" onClick={onDone}>Cancel</button>
-    </form>
+    <>
+      <form className="textedit" onSubmit={(e) => { e.preventDefault(); if (name.trim()) onSave(name.trim()); }}>
+        <input data-autofocus placeholder={placeholder} value={name} maxLength={80} onChange={(e) => setName(e.target.value)} aria-label={placeholder} />
+        <button className="plain save" disabled={!name.trim() || name.trim() === initial}>{action}</button>
+      </form>
+      <Foot>
+        {onReset && <button className="plain reset" onClick={onReset}>{resetLabel}</button>}
+        <button className="done quiet" onClick={onDone}>Cancel</button>
+      </Foot>
+    </>
   );
 }
 
@@ -303,6 +246,116 @@ export function EntityPicker({ hass, exclude, onPick }: { hass: HomeAssistant; e
         ))}
         {results.length === 0 && <p className="hint">No entity matches “{q.trim()}”.</p>}
       </div>
+    </>
+  );
+}
+
+/* ── Choose what an entity favorite does ─────────────────── */
+export function ActionSheet({ hass, entityId, current, onSave }: {
+  hass: HomeAssistant; entityId: string; current?: FavoriteAction; onSave: (a: FavoriteAction) => void;
+}) {
+  const [service, setService] = useState<string | null>(null);
+  const services = servicesFor(hass, entityId);
+  const same = (a: FavoriteAction) => JSON.stringify(a) === JSON.stringify(current);
+
+  if (service) {
+    const info = services.find(([n]) => n === service)?.[1];
+    return (
+      <ServiceForm
+        hass={hass} entityId={entityId} service={service} fields={fieldsOf(info)}
+        initial={current?.kind === "service" && current.service === service ? current.data : undefined}
+        onBack={() => setService(null)} onSave={(data) => onSave({ kind: "service", service, data })}
+      />
+    );
+  }
+  const choose = (name: string) => {
+    const info = services.find(([n]) => n === name)?.[1];
+    if (fieldsOf(info).length) setService(name);
+    else onSave({ kind: "service", service: name });
+  };
+  return (
+    <>
+      <p className="hint">Choose what happens when you tap it. Press and hold the tile to open its details.</p>
+      <div className="options picker" role="radiogroup" aria-label="Action">
+        <button className="opt" role="radio" aria-checked={same({ kind: "more-info" })} onClick={() => onSave({ kind: "more-info" })}>
+          <span>Open details<small>Shows Home Assistant's own controls</small></span>
+          <span className="check"><Icon name="check" /></span>
+        </button>
+        {canToggle(hass, entityId) && (
+          <button className="opt" role="radio" aria-checked={same({ kind: "toggle" })} onClick={() => onSave({ kind: "toggle" })}>
+            <span>Toggle<small>Switch it on or off</small></span>
+            <span className="check"><Icon name="check" /></span>
+          </button>
+        )}
+        {services.filter(([n]) => n !== "toggle").map(([name, info]) => {
+          const selected = current?.kind === "service" && current.service === name;
+          const hasFields = fieldsOf(info).length > 0;
+          return (
+            <button key={name} className="opt" role="radio" aria-checked={selected} onClick={() => choose(name)}>
+              <span>
+                {info.name || name}
+                <small>{selected && current ? actionLabel(hass, entityId, current) : info.description}</small>
+              </span>
+              {selected && <span className="check"><Icon name="check" /></span>}
+              {hasFields && <span className="go"><Icon name="chevron" /></span>}
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function ServiceForm({ hass, entityId, service, fields, initial, onBack, onSave }: {
+  hass: HomeAssistant; entityId: string; service: string; fields: ReturnType<typeof fieldsOf>;
+  initial?: Record<string, unknown>; onBack: () => void; onSave: (data: Record<string, unknown>) => void;
+}) {
+  const [values, setValues] = useState<Record<string, string | boolean>>(() =>
+    Object.fromEntries(
+      Object.entries(initial ?? {}).map(([k, v]) => [k, typeof v === "boolean" ? v : typeof v === "object" ? JSON.stringify(v) : String(v)]),
+    ),
+  );
+  const kinds = Object.fromEntries(fields.map(([k, f]) => [k, fieldKind(f)])) as Record<string, FieldKind>;
+  const filled = Object.entries(values).filter(([, v]) => v !== "" && v !== undefined);
+  const data = Object.fromEntries(filled.map(([k, v]) => [k, parseInput(kinds[k], v)]));
+  const missing = fields.filter(([k, f]) => f.required && !(k in data));
+  return (
+    <>
+      <p className="hint">{actionLabel(hass, entityId, { kind: "service", service, data })}. Leave a field empty to skip it.</p>
+      <div className="form">
+        {fields.map(([key, f]) => {
+          const kind = kinds[key];
+          const set = (v: string | boolean) => setValues((s) => ({ ...s, [key]: v }));
+          const num = (f.selector?.number ?? {}) as { min?: number; max?: number; step?: number | string; unit_of_measurement?: string };
+          const example = f.example === undefined ? "" : `e.g. ${typeof f.example === "object" ? JSON.stringify(f.example) : String(f.example)}`;
+          return (
+            <label key={key} className="field">
+              <span className="f-label">{f.name || key}{f.required ? " (required)" : ""}</span>
+              {kind === "boolean" ? (
+                <input type="checkbox" checked={values[key] === true} onChange={(e) => set(e.target.checked)} />
+              ) : kind === "select" ? (
+                <select value={String(values[key] ?? "")} onChange={(e) => set(e.target.value)}>
+                  <option value="">—</option>
+                  {selectOptions(f).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              ) : (
+                <span className="f-input">
+                  <input
+                    type={kind === "number" ? "number" : "text"} value={String(values[key] ?? "")} placeholder={example}
+                    min={num.min} max={num.max} step={num.step === "any" ? "any" : num.step}
+                    onChange={(e) => set(e.target.value)}
+                  />
+                  {num.unit_of_measurement && <span className="muted">{num.unit_of_measurement}</span>}
+                </span>
+              )}
+            </label>
+          );
+        })}
+      </div>
+      <Foot>
+        <button className="plain reset" onClick={onBack}>Back</button>
+        <button className="done" disabled={missing.length > 0} onClick={() => onSave(data)}>Save</button>
+      </Foot>
     </>
   );
 }

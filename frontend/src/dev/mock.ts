@@ -3,6 +3,7 @@
  * shaped like the real thing. Modeled on real setups: shutters on sunset/sunrise with a delay helper,
  * hall lights with a night brightness, plus edge cases (disabled, via a script, no helpers, missing helper).
  */
+import { MOCK_SERVICES } from "./services";
 import type { AutomationInfo, HassEntity, HomeAssistant, Layout, Profile } from "../types";
 
 const ago = (days: number, h: number, m: number) => {
@@ -69,7 +70,17 @@ const automations: AutomationInfo[] = [
   { entity_id: "automation.front_door_left_open", config_id: null, category: null, helpers: [] },
 ];
 
-let layout: Layout = { groups: [], hidden: [], favorites: [] };
+let layout: Layout = {
+  groups: [{ id: "gang", name: "Gang", automations: ["automation.hall_night_mode", "automation.hall_day_brightness"] }],
+  hidden: ["automation.front_door_left_open"],
+  favorites: [
+    { type: "group", id: "gang" },
+    { type: "entity", id: "light.gang", action: { kind: "toggle" } },
+    { type: "entity", id: "light.living_room", action: { kind: "service", service: "turn_on", data: { brightness_pct: 30 } } },
+    { type: "entity", id: "script.good_night", action: { kind: "service", service: "turn_on" } },
+  ],
+  names: { "automation.washing_machine_done": "Washer done" },
+};
 
 let profiles: Profile[] = [
   { id: "p1", name: "Summer", values: { "input_number.shutters_sunset_delay": "15.0", "input_number.shutters_sunrise_delay": "0.0", "input_number.garden_sunset_offset": "30.0", "input_datetime.hall_night_start": "23:30:00" } },
@@ -99,6 +110,10 @@ export function createMockHass(onChange: (hass: HomeAssistant) => void): HomeAss
     if (domain === "input_datetime") return setState(id, String(data.time ?? data.datetime ?? data.date));
     if (domain === "input_button") return setState(id, new Date().toISOString());
     if (domain === "automation" && (service === "turn_on" || service === "turn_off")) return setState(id, service === "turn_on" ? "on" : "off");
+    if (domain === "light" && service === "turn_on" && typeof data.brightness_pct === "number") return setState(id, "on", { brightness: Math.round((data.brightness_pct / 100) * 255) });
+    if (domain === "cover" && service.endsWith("_cover")) return setState(id, service === "open_cover" ? "open" : service === "close_cover" ? "closed" : states[id].state);
+    if (domain === "cover" && service === "set_cover_position") return setState(id, Number(data.position) > 0 ? "open" : "closed", { current_position: Number(data.position) });
+    if (["light", "switch", "fan"].includes(domain) && (service === "turn_on" || service === "turn_off")) return setState(id, service === "turn_on" ? "on" : "off");
     if (service === "toggle") {
       const on = ["on", "open"].includes(states[id].state);
       return setState(id, domain === "cover" ? (on ? "closed" : "open") : on ? "off" : "on");
@@ -127,6 +142,7 @@ export function createMockHass(onChange: (hass: HomeAssistant) => void): HomeAss
 
   const make = (): HomeAssistant => ({
     states,
+    services: MOCK_SERVICES,
     callService,
     callWS,
     connection: { subscribeEvents: async () => () => {} },
