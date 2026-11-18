@@ -105,7 +105,7 @@ export function Detail({ hass, item, onBack, onEdit, onRun, onMore, toast }: Pro
         All automations
       </button>
       <h1 className="d-title">
-        <AutomationIcon hass={hass} entityId={single.entityId} categoryIcon={item.category.icon} size={30} />
+        <AutomationIcon off={item.automations.every((a) => !a.enabled)} size={30} />
         {item.name}
       </h1>
       <p className="d-sub">

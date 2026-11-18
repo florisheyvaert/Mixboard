@@ -55,7 +55,7 @@ export function Home(p: Props) {
 
   const itemTile = (i: Item) => (
     <ItemTile
-      key={i.key} hass={p.hass} item={i} editing={p.editing} selected={p.selected.has(i.key)}
+      key={i.key} item={i} editing={p.editing} selected={p.selected.has(i.key)}
       favorite={favKeys.has(i.key)} hidden={hidden.has(i.key)}
       onOpen={() => (p.editing ? p.onSelect(i.key) : p.onOpen(i.key))}
       onFavorite={() => p.onFavorite(itemFavorite(i))}
@@ -145,7 +145,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function ItemTile(p: {
-  hass: HomeAssistant; item: Item; editing: boolean; selected: boolean; favorite: boolean; hidden: boolean;
+  item: Item; editing: boolean; selected: boolean; favorite: boolean; hidden: boolean;
   onOpen: () => void; onFavorite: () => void; onHide: () => void;
 }) {
   const { item } = p;
@@ -163,7 +163,7 @@ function ItemTile(p: {
       onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); p.onOpen(); } }}
     >
       <div className="t-head">
-        <AutomationIcon hass={p.hass} entityId={item.automations[0].entityId} categoryIcon={item.category.icon} />
+        <AutomationIcon off={off === item.automations.length} />
         <div className="t-name">{item.name}</div>
       </div>
       {foot && <div className="t-foot">{foot}</div>}

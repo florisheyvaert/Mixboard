@@ -1,5 +1,4 @@
 /** `npm run dev`: mounts the real panel element with a mock Home Assistant. Not part of the build. */
-import "./haIcon";
 import "../main";
 import { createMockHass } from "./mock";
 import type { HomeAssistant } from "../types";
