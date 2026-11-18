@@ -12,6 +12,7 @@ const paths = {
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   close: <path d="M7 7l10 10M17 7L7 17" />,
   play: <path d="M8 5.5v13l10.5-6.5z" />,
+  tune: <><path d="M6 4v5M6 13v7M12 4v9M12 17v3M18 4v3M18 11v9" /><circle cx="6" cy="11" r="2" /><circle cx="12" cy="15" r="2" /><circle cx="18" cy="9" r="2" /></>,
   more: <><circle cx="5.5" cy="12" r="1.2" fill="currentColor" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /><circle cx="18.5" cy="12" r="1.2" fill="currentColor" /></>,
   edit: <><path d="M4 20h4L19 9l-4-4L4 16v4z" /><path d="M13.5 6.5l4 4" /></>,
   star: <path d={star} />,

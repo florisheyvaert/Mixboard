@@ -4,6 +4,7 @@ import { Icon } from "../icons";
 import { categoriesOf, entityName, entityState, favoriteKey, itemFavorite, itemHelpers, type Item } from "../model";
 import type { Favorite, HomeAssistant, Layout } from "../types";
 import { errorText, Switch } from "../ui";
+import { EntityIcon } from "./EntityIcon";
 
 interface Props {
   hass: HomeAssistant;
@@ -72,7 +73,17 @@ export function Home(p: Props) {
         {p.editing ? (
           <button className="btn dark" onClick={() => p.onEditing(false)}>Done</button>
         ) : (
-          <button className="btn" onClick={() => p.onEditing(true)}><Icon name="edit" size={18} />Customize</button>
+          <>
+            {(hiddenCount > 0 || p.showHidden) && (
+              <label className="hidden-toggle" title="Show hidden automations">
+                <span>Hidden{hiddenCount ? <span className="count"> ({hiddenCount})</span> : null}</span>
+                <Switch checked={p.showHidden} label="Show hidden automations" onChange={() => p.onShowHidden(!p.showHidden)} />
+              </label>
+            )}
+            <button className="roundbtn" aria-label="Customize" title="Customize: favorites, hide, group, rename" onClick={() => p.onEditing(true)}>
+              <Icon name="tune" size={22} />
+            </button>
+          </>
         )}
       </div>
       {p.editing ? (
@@ -119,12 +130,6 @@ export function Home(p: Props) {
         <button className="btn spaced" onClick={() => p.onHide(noSettings.map((i) => i.key), true)}>
           Hide the {noSettings.length} automation{noSettings.length === 1 ? "" : "s"} without settings
         </button>
-      )}
-      {!p.editing && (hiddenCount > 0 || p.showHidden) && (
-        <div className="toggle-row">
-          <span>Show hidden automations <span className="muted">({hiddenCount})</span></span>
-          <Switch checked={p.showHidden} label="Show hidden automations" onChange={() => p.onShowHidden(!p.showHidden)} />
-        </div>
       )}
     </div>
   );
@@ -205,7 +210,7 @@ function EntityTile(p: {
     return (
       <div className="tile entity" role="button" tabIndex={0} onClick={(e) => p.onEdit(e.currentTarget)}
         onKeyDown={(e) => { if (e.target === e.currentTarget && e.key === "Enter") p.onEdit(e.currentTarget); }}>
-        <div className="t-name">{name}</div>
+        <div className="t-head"><EntityIcon hass={p.hass} entityId={id} /><div className="t-name">{name}</div></div>
         <div className="t-sub">{actionLabel(p.hass, id, action)}</div>
         <div className="t-foot">Tap to change</div>
         <div className="t-tools" onClick={(e) => e.stopPropagation()}>
@@ -221,7 +226,7 @@ function EntityTile(p: {
       onClick={tap} {...press}
       onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); tap(); } }}
     >
-      <div className="t-name">{name}</div>
+      <div className="t-head"><EntityIcon hass={p.hass} entityId={id} /><div className="t-name">{name}</div></div>
       {action.kind === "service" ? (
         <div className="t-sub">{actionLabel(p.hass, id, action)}</div>
       ) : (

@@ -47,6 +47,7 @@ const initialStates: HassEntity[] = [
   entity("light.living_room", "off", { friendly_name: "Living room" }),
   entity("switch.coffee_machine", "off", { friendly_name: "Coffee machine" }),
   entity("cover.living_room", "open", { friendly_name: "Living room shutter", current_position: 100 }),
+  entity("cover.living", "closed", { friendly_name: "Living", current_position: 0 }),
   entity("script.good_night", "off", { friendly_name: "Good night" }),
   entity("sensor.outdoor_temperature", "7.4", { friendly_name: "Outdoor temperature", unit_of_measurement: "°C" }),
   entity("input_text.washer_message", "The washing machine is done", { friendly_name: "Message", min: 0, max: 100 }),
@@ -78,6 +79,8 @@ let layout: Layout = {
     { type: "entity", id: "light.gang", action: { kind: "toggle" } },
     { type: "entity", id: "light.living_room", action: { kind: "service", service: "turn_on", data: { brightness_pct: 30 } } },
     { type: "entity", id: "script.good_night", action: { kind: "service", service: "turn_on" } },
+    { type: "entity", id: "cover.living", action: { kind: "toggle" } },
+    { type: "entity", id: "sensor.outdoor_temperature", action: { kind: "more-info" } },
   ],
   names: { "automation.washing_machine_done": "Washer done" },
 };
